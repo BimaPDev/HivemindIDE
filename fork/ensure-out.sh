@@ -16,7 +16,7 @@ NESTED="$EDITOR_DIR/out/vs/vs/base/parts/ipc/common/ipc.js"
 
 cd "$EDITOR_DIR"
 
-NODE_VERSION="$(tr -d 'v \n' < .nvmrc 2>/dev/null || true)"
+NODE_VERSION="$(tr -d 'v \r\n' < .nvmrc 2>/dev/null || true)"
 if [ -n "${NODE_VERSION:-}" ] && [ -d "$HOME/.nvm/versions/node/v${NODE_VERSION}/bin" ]; then
 	export PATH="$HOME/.nvm/versions/node/v${NODE_VERSION}/bin:$PATH"
 fi

@@ -158,57 +158,16 @@ jq --tab '
 # iterates this array unconditionally, so it has to stay an empty list.
 | .builtInExtensionsEnabledWithAutoUpdates = []
 
-# Bundle Catppuccin as an optional alternative theme. The defaults are the
-# in-tree Hivemind lens themes (extensions/theme-hivemind in the fork)
-# with the monochrome vscode-modern-icons, so nothing here is load-bearing for
-# the default look — dropping these entries only removes the choice.
-#
-# These are fetched at build time from .extensionsGallery.serviceUrl (Open VSX,
-# set above) by `npm run download-builtin-extensions`. sha256 pins the exact
-# artifact — if upstream republishes a version, the build fails loudly rather
-# than silently shipping different code.
-# Keep upstream ms-vscode.js-debug* — those are MIT and required for debugging.
+# Defaults are the in-tree Hivemind lens themes (extensions/theme-hivemind)
+# with the monochrome vscode-modern-icons. Keep upstream ms-vscode.js-debug* —
+# those are MIT and required for debugging. Drop Catppuccin and Copilot.
 | .builtInExtensions = (
-    ((.builtInExtensions // [])
+    (.builtInExtensions // [])
       | map(select(
           (.name | startswith("Catppuccin.") | not)
           and (.name | startswith("GitHub.copilot") | not)
           and (.name | test("ms-vscode\\.vscode-speech|ms-vscode\\.copilot") | not)
-        )))
-    + [
-      {
-        "name": "Catppuccin.catppuccin-vsc",
-        "version": "3.19.0",
-        "sha256": "ebf347664837edbe91c9920ff3d14c96d4a28beeec0b95137c76058326329780",
-        "repo": "https://github.com/catppuccin/vscode",
-        "metadata": {
-          "id": "69264e4d-cd3b-468a-8f2b-e69673c7d864",
-          "publisherId": {
-            "publisherId": "e7d2ed61-53e0-4dd4-afbe-f536c3bb4316",
-            "publisherName": "Catppuccin",
-            "displayName": "Catppuccin",
-            "flags": "verified"
-          },
-          "publisherDisplayName": "Catppuccin"
-        }
-      },
-      {
-        "name": "Catppuccin.catppuccin-vsc-icons",
-        "version": "1.26.0",
-        "sha256": "57566136d0a8ba8d040eb6e5be866c88ccbb04f3d219d3a7e52a19978900ff3d",
-        "repo": "https://github.com/catppuccin/vscode-icons",
-        "metadata": {
-          "id": "625b9abd-dfac-405b-bf34-e65f46e2f22f",
-          "publisherId": {
-            "publisherId": "e7d2ed61-53e0-4dd4-afbe-f536c3bb4316",
-            "publisherName": "Catppuccin",
-            "displayName": "Catppuccin",
-            "flags": "verified"
-          },
-          "publisherDisplayName": "Catppuccin"
-        }
-      }
-    ]
+        ))
   )
 
 | .reportIssueUrl = "https://github.com/BimaPDev/HivemindIDE-editor/issues/new"

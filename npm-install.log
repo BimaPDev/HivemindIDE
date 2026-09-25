@@ -1,0 +1,216 @@
+npm warn Unknown project config "disturl". This will stop working in the next major version of npm.
+npm warn Unknown project config "target". This will stop working in the next major version of npm.
+npm warn Unknown project config "ms_build_id". This will stop working in the next major version of npm.
+npm warn Unknown project config "runtime". This will stop working in the next major version of npm.
+npm warn Unknown project config "build_from_source". This will stop working in the next major version of npm.
+npm warn Unknown project config "timeout". This will stop working in the next major version of npm.
+npm warn deprecated osenv@0.1.5: This package is no longer supported.
+npm warn deprecated is-data-descriptor@1.0.0: Please upgrade to v1.0.1
+npm warn deprecated is-accessor-descriptor@1.0.0: Please upgrade to v1.0.1
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated source-map-resolve@0.6.0: See https://github.com/lydell/source-map-resolve#deprecated
+npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated glob@5.0.15: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.1.7: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.1.7: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.1.6: Glob versions prior to v9 are no longer supported
+npm warn deprecated glob@7.1.6: Glob versions prior to v9 are no longer supported
+npm warn deprecated is-data-descriptor@0.1.4: Please upgrade to v0.1.5
+npm warn deprecated is-accessor-descriptor@0.1.6: Please upgrade to v0.1.7
+npm warn deprecated is-data-descriptor@0.1.4: Please upgrade to v0.1.5
+npm warn deprecated is-accessor-descriptor@0.1.6: Please upgrade to v0.1.7
+npm warn deprecated is-data-descriptor@0.1.4: Please upgrade to v0.1.5
+npm warn deprecated is-accessor-descriptor@0.1.6: Please upgrade to v0.1.7
+npm warn deprecated is-data-descriptor@0.1.4: Please upgrade to v0.1.5
+npm warn deprecated is-accessor-descriptor@0.1.6: Please upgrade to v0.1.7
+npm warn deprecated is-data-descriptor@0.1.4: Please upgrade to v0.1.5
+npm warn deprecated is-accessor-descriptor@0.1.6: Please upgrade to v0.1.7
+npm warn deprecated chokidar@2.1.8: Chokidar 2 does not receive security updates since 2019. Upgrade to chokidar 3 with 15x fewer dependencies
+npm warn deprecated source-map-resolve@0.5.3: See https://github.com/lydell/source-map-resolve#deprecated
+npm warn deprecated urix@0.1.0: Please see https://github.com/lydell/urix#deprecated
+npm warn deprecated yaeti@0.0.6: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+npm warn deprecated resolve-url@0.2.1: https://github.com/lydell/resolve-url#deprecated
+npm warn deprecated asar@3.0.3: Please use @electron/asar moving forward.  There is no API change, just a package name change
+npm warn deprecated source-map-url@0.4.0: See https://github.com/lydell/source-map-url#deprecated
+npm warn deprecated uuid@3.4.0: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated sinon@12.0.1: 16.1.1
+npm warn cleanup Failed to remove some directories [
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\native-watchdog',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\native-watchdog'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\native-watchdog'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\foundry-local-sdk',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\foundry-local-sdk'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\foundry-local-sdk'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\windows-foreground-love',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\windows-foreground-love'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\windows-foreground-love'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\fs-copyfile',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\fs-copyfile'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\fs-copyfile'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\spdlog',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\spdlog'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\spdlog'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\windows-ca-certs',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\windows-ca-certs'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\windows-ca-certs'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\windows-process-tree',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\windows-process-tree'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\windows-process-tree'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\policy-watcher',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\policy-watcher'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\policy-watcher'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\windows-mutex',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\windows-mutex'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\windows-mutex'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\kerberos',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\kerberos'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\kerberos'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\windows-foreground-love',
+npm warn cleanup     [Error: EBUSY: resource busy or locked, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\windows-foreground-love'] {
+npm warn cleanup       errno: -4082,
+npm warn cleanup       code: 'EBUSY',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\windows-foreground-love'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@github',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@github\copilot-sdk\node_modules\zod\v4\locales'] {
+npm warn cleanup       errno: -4048,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@github\\copilot-sdk\\node_modules\\zod\\v4\\locales'
+npm warn cleanup     }
+npm warn cleanup   ],
+npm warn cleanup   [
+npm warn cleanup     '\\\\?\\Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@playwright',
+npm warn cleanup     [Error: EPERM: operation not permitted, rmdir 'Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@playwright\browser-chromium\node_modules'] {
+npm warn cleanup       errno: -4048,
+npm warn cleanup       code: 'EPERM',
+npm warn cleanup       syscall: 'rmdir',
+npm warn cleanup       path: 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@playwright\\browser-chromium\\node_modules'
+npm warn cleanup     }
+npm warn cleanup   ]
+npm warn cleanup ]
+npm error code 1
+npm error path Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\deviceid
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c node-gyp rebuild
+npm error C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Microsoft\VC\v170\Microsoft.CppBuild.targets(511,5): error MSB8040: Spectre-mitigated libraries are required for this project. Install them from the Visual Studio installer (Individual components tab) for any toolsets and architectures being used. Learn more: https://aka.ms/Ofhn4c [Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\deviceid\build\windows.vcxproj]
+npm error gyp info it worked if it ends with ok
+npm error gyp info using node-gyp@11.4.2
+npm error gyp info using node@24.11.1 | win32 | x64
+npm error gyp info find Python using Python version 3.14.0 found at "C:\Python314\python.exe"
+npm error gyp info find VS using VS2022 (17.14.36717.8) found at:
+npm error gyp info find VS "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools"
+npm error gyp info find VS run with --verbose for detailed information
+npm error gyp info spawn C:\Python314\python.exe
+npm error gyp info spawn args [
+npm error gyp info spawn args 'C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\node-gyp\\gyp\\gyp_main.py',
+npm error gyp info spawn args 'binding.gyp',
+npm error gyp info spawn args '-f',
+npm error gyp info spawn args 'msvs',
+npm error gyp info spawn args '-I',
+npm error gyp info spawn args 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\deviceid\\build\\config.gypi',
+npm error gyp info spawn args '-I',
+npm error gyp info spawn args 'C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\node-gyp\\addon.gypi',
+npm error gyp info spawn args '-I',
+npm error gyp info spawn args 'C:\\Users\\bangu\\AppData\\Local\\node-gyp\\Cache\\43.7.3\\include\\node\\common.gypi',
+npm error gyp info spawn args '-Dlibrary=shared_library',
+npm error gyp info spawn args '-Dvisibility=default',
+npm error gyp info spawn args '-Dnode_root_dir=C:\\Users\\bangu\\AppData\\Local\\node-gyp\\Cache\\43.7.3',
+npm error gyp info spawn args '-Dnode_gyp_dir=C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\node-gyp',
+npm error gyp info spawn args '-Dnode_lib_file=C:\\\\Users\\\\bangu\\\\AppData\\\\Local\\\\node-gyp\\\\Cache\\\\43.7.3\\\\<(target_arch)\\\\node.lib',
+npm error gyp info spawn args '-Dmodule_root_dir=Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\deviceid',
+npm error gyp info spawn args '-Dnode_engine=v8',
+npm error gyp info spawn args '--depth=.',
+npm error gyp info spawn args '--no-parallel',
+npm error gyp info spawn args '--generator-output',
+npm error gyp info spawn args 'Z:\\Coding\\HivemindIDE\\HivemindIDE-editor\\node_modules\\@vscode\\deviceid\\build',
+npm error gyp info spawn args '-Goutput_dir=.'
+npm error gyp info spawn args ]
+npm error gyp info spawn C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe
+npm error gyp info spawn args [
+npm error gyp info spawn args 'build/binding.sln',
+npm error gyp info spawn args '/clp:Verbosity=minimal',
+npm error gyp info spawn args '/nologo',
+npm error gyp info spawn args '/nodeReuse:false',
+npm error gyp info spawn args '/p:Configuration=Release;Platform=x64'
+npm error gyp info spawn args ]
+npm error gyp ERR! build error 
+npm error gyp ERR! stack Error: `C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe` failed with exit code: 1
+npm error gyp ERR! stack at ChildProcess.<anonymous> (C:\Program Files\nodejs\node_modules\npm\node_modules\node-gyp\lib\build.js:219:23)
+npm error gyp ERR! stack at ChildProcess.emit (node:events:508:28)
+npm error gyp ERR! stack at ChildProcess._handle.onexit (node:internal/child_process:294:12)
+npm error gyp ERR! System Windows_NT 10.0.26100
+npm error gyp ERR! command "C:\\Program Files\\nodejs\\node.exe" "C:\\Program Files\\nodejs\\node_modules\\npm\\node_modules\\node-gyp\\bin\\node-gyp.js" "rebuild"
+npm error gyp ERR! cwd Z:\Coding\HivemindIDE\HivemindIDE-editor\node_modules\@vscode\deviceid
+npm error gyp ERR! node -v v24.11.1
+npm error gyp ERR! node-gyp -v v11.4.2
+npm error gyp ERR! not ok
+npm error A complete log of this run can be found in: C:\Users\bangu\AppData\Local\npm-cache\_logs\2026-09-25T11_11_47_262Z-debug-0.log

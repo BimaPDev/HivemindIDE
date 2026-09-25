@@ -19,7 +19,7 @@ EDITOR_DIR="$(hivemindide_editor_dir)"
 [ -d "$EDITOR_DIR" ] || { echo "no checkout at $EDITOR_DIR" >&2; exit 1; }
 
 # The build is pinned to the Node version in .nvmrc and misbehaves on others.
-NODE_VERSION="$(tr -d 'v \n' < "$EDITOR_DIR/.nvmrc")"
+NODE_VERSION="$(tr -d 'v \r\n' < "$EDITOR_DIR/.nvmrc")"
 NODE_BIN="$HOME/.nvm/versions/node/v${NODE_VERSION}/bin"
 if [ -d "$NODE_BIN" ]; then
   export PATH="$NODE_BIN:$PATH"
