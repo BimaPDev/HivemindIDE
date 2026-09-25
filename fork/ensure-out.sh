@@ -9,7 +9,8 @@
 # resolves to src/. We flatten that nesting when we see it.
 set -euo pipefail
 
-EDITOR_DIR="${1:-${HIVEMINDIDE_EDITOR_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/hivemindide-editor}}"
+. "$(dirname "${BASH_SOURCE[0]}")/editor-dir.sh"
+EDITOR_DIR="${1:-$(hivemindide_editor_dir)}"
 SENTINEL="$EDITOR_DIR/out/vs/base/parts/ipc/common/ipc.js"
 NESTED="$EDITOR_DIR/out/vs/vs/base/parts/ipc/common/ipc.js"
 

@@ -1,5 +1,7 @@
-# The editor fork is a SIBLING repository (../hivemindide-editor), not a
-# subdirectory — see fork/README.md. Nothing to ignore for it here.
+# The editor fork is a SIBLING repository (../hivemindide-editor) — see
+# fork/README.md. If it is cloned inside this repo instead, keep it out of this
+# repo's history; the fork scripts find it in either place.
+/hivemindide-editor/
 
 # Build output
 dist/

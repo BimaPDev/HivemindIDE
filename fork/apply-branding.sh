@@ -11,7 +11,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EDITOR_DIR="${HIVEMINDIDE_EDITOR_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)/hivemindide-editor}"
+. "$SCRIPT_DIR/editor-dir.sh"
+EDITOR_DIR="$(hivemindide_editor_dir)"
 
 [ -d "$EDITOR_DIR" ] || { echo "no checkout at $EDITOR_DIR" >&2; exit 1; }
 [ -f "$EDITOR_DIR/product.json" ] || { echo "$EDITOR_DIR is not a vscode checkout" >&2; exit 1; }
@@ -153,12 +154,14 @@ jq --tab '
 | .serverLicenseUrl = "https://github.com/BimaPDev/HivemindIDE-editor/blob/main/LICENSE.txt"
 
 # No Copilot auto-update hook. Upstream lists GitHub.copilot-chat here so the
-# scanner can refresh a built-in Copilot VSIX; we ship none.
-| del(.builtInExtensionsEnabledWithAutoUpdates)
+# scanner can refresh a built-in Copilot VSIX; we ship none. The scanner
+# iterates this array unconditionally, so it has to stay an empty list.
+| .builtInExtensionsEnabledWithAutoUpdates = []
 
-# Bundle Catppuccin so the default theme in ThemeSettingDefaults actually
-# resolves. Without this the default silently falls back to a stock theme,
-# because a default naming a theme nobody has installed is just a dead string.
+# Bundle Catppuccin as an optional alternative theme. The defaults are the
+# in-tree Hivemind lens themes (extensions/theme-hivemind in the fork)
+# with the monochrome vscode-modern-icons, so nothing here is load-bearing for
+# the default look — dropping these entries only removes the choice.
 #
 # These are fetched at build time from .extensionsGallery.serviceUrl (Open VSX,
 # set above) by `npm run download-builtin-extensions`. sha256 pins the exact
@@ -211,13 +214,16 @@ jq --tab '
 | .reportIssueUrl = "https://github.com/BimaPDev/HivemindIDE-editor/issues/new"
 | .licenseUrl     = "https://github.com/BimaPDev/HivemindIDE-editor/blob/main/LICENSE.txt"
 
-# First-run theme picker: Macchiato first, Latte as the light option.
+# First-run theme picker: Dynamic (the default) first, then one card per
+# single-lens theme, plus Light.
 | .onboardingThemes = [
-    { id: "catppuccin-macchiato", label: "Catppuccin Macchiato", themeId: "Catppuccin Macchiato", type: "dark" },
-    { id: "catppuccin-mocha",     label: "Catppuccin Mocha",     themeId: "Catppuccin Mocha",     type: "dark" },
-    { id: "hc-dark",              label: "Dark High Contrast",   themeId: "Default High Contrast", type: "hcDark" },
-    { id: "catppuccin-latte",     label: "Catppuccin Latte",     themeId: "Catppuccin Latte",     type: "light" },
-    { id: "hc-light",             label: "Light High Contrast",  themeId: "Default High Contrast Light", type: "hcLight" }
+    { id: "hivemind-dynamic", label: "Hivemind Dynamic", themeId: "Hivemind Dynamic", type: "dark" },
+    { id: "hivemind-ember",  label: "Hivemind Ember",  themeId: "Hivemind Ember",  type: "dark" },
+    { id: "hivemind-jade",   label: "Hivemind Jade",   themeId: "Hivemind Jade",   type: "dark" },
+    { id: "hivemind-cobalt", label: "Hivemind Cobalt", themeId: "Hivemind Cobalt", type: "dark" },
+    { id: "hivemind-violet", label: "Hivemind Violet", themeId: "Hivemind Violet", type: "dark" },
+    { id: "hivemind-chrome", label: "Hivemind Chrome", themeId: "Hivemind Chrome", type: "dark" },
+    { id: "hivemind-light",  label: "Hivemind Light",  themeId: "Hivemind Light",  type: "light" }
   ]
 ' "$EDITOR_DIR/product.json" > "$EDITOR_DIR/product.json.tmp"
 mv "$EDITOR_DIR/product.json.tmp" "$EDITOR_DIR/product.json"
@@ -245,8 +251,10 @@ jq '
 | del(.scripts["copilot:setup"])
 | del(.scripts["copilot:get_token"])
 | del(.dependencies["@github/copilot"])
-| del(.dependencies["@github/copilot-sdk"])
 | del(.dependencies["@vscode/copilot-api"])
+# Keep @github/copilot-sdk. gulpfile.vscode.ts reads its package.json at
+# startup (getCopilotRuntimeVersion) before any task runs, so deleting the
+# dependency makes `npm run compile` fail before it compiles anything.
 ' "$EDITOR_DIR/package.json" > "$EDITOR_DIR/package.json.tmp"
 mv "$EDITOR_DIR/package.json.tmp" "$EDITOR_DIR/package.json"
 
@@ -314,6 +322,14 @@ if [ -f "$DIRS_TS" ]; then
 	"${SED_INPLACE[@]}" "/'extensions\/microsoft-authentication',/d" "$DIRS_TS"
 fi
 
+# npm dirs skip the extension, but the dev compile list is a hardcoded array
+# in gulpfile.extensions.ts. Leaving the entry in makes `npm run compile`
+# typecheck an extension whose node_modules were never installed.
+GULP_EXT="$EDITOR_DIR/build/gulpfile.extensions.ts"
+if [ -f "$GULP_EXT" ]; then
+	"${SED_INPLACE[@]}" "/'extensions\/microsoft-authentication\/tsconfig.json',/d" "$GULP_EXT"
+fi
+
 # Packaging still walks extensions/ even when npm dirs skip them. Keep
 # microsoft-authentication out of the VSIX/product payload the same way
 # upstream already excludes 'copilot'.
@@ -366,7 +382,7 @@ if [ -f "$PRODUCT_TS" ]; then
 	if grep -q "function getDependencyVersion" "$PRODUCT_TS"; then
 		# Definition itself matches getDependencyVersion(; only remove when that is the sole hit.
 		if [ "$(grep -c "getDependencyVersion(" "$PRODUCT_TS" || true)" -eq 1 ]; then
-			perl -i -0pe "s/\nfunction getDependencyVersion\(packageConfiguration: IPackageConfiguration, packageName: string\): string \| undefined \{\n\treturn packageConfiguration\.dependencies\?\.\[packageName\]\?\.replace\(\/\^\[~^\]\/, ''\);\n\}\n/\n/" \
+			perl -i -0pe 's/\nfunction getDependencyVersion\(.*?\n\}\n/\n/s' \
 				"$PRODUCT_TS"
 		fi
 	fi

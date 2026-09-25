@@ -14,7 +14,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EDITOR_DIR="${HIVEMINDIDE_EDITOR_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)/hivemindide-editor}"
+. "$SCRIPT_DIR/editor-dir.sh"
+EDITOR_DIR="$(hivemindide_editor_dir)"
 [ -d "$EDITOR_DIR" ] || { echo "no checkout at $EDITOR_DIR" >&2; exit 1; }
 
 # The build is pinned to the Node version in .nvmrc and misbehaves on others.

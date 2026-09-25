@@ -9,7 +9,8 @@
 # Idempotent. Re-run after every upstream merge.
 set -euo pipefail
 
-EDITOR_DIR="${HIVEMINDIDE_EDITOR_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/hivemindide-editor}"
+. "$(dirname "${BASH_SOURCE[0]}")/editor-dir.sh"
+EDITOR_DIR="$(hivemindide_editor_dir)"
 [ -d "$EDITOR_DIR" ] || { echo "no checkout at $EDITOR_DIR" >&2; exit 1; }
 
 SEARCH='\.data\.microsoft\.com'
