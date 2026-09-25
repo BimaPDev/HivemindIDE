@@ -1,0 +1,57 @@
+name: services
+
+# Covers the two Go services only. The editor fork is built by fork.yml, which
+# is a different kind of job entirely — see the note there.
+on:
+  push:
+    paths: ['services/**', '.github/workflows/services.yml']
+  pull_request:
+    paths: ['services/**', '.github/workflows/services.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [permission, coordination]
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: services/${{ matrix.service }}/go.sum
+
+      - name: go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+
+      - run: gofmt -l . | tee /dev/stderr | (! read)
+        name: gofmt
+
+      - run: go vet ./...
+
+      # The suites use miniredis and a fake store, so no services are needed.
+      - run: go test -race -count=1 ./...
+
+      - run: go build ./...
+
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [permission, coordination]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/${{ matrix.service }}
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

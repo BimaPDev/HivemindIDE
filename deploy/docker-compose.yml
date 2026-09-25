@@ -1,0 +1,76 @@
+# Local dev stack. Both services bind to 127.0.0.1 on the host: they trust the
+# identity their caller claims, so they must not be reachable off this machine.
+#
+#   docker compose -f deploy/docker-compose.yml up --build
+#   docker compose -f deploy/docker-compose.yml run --rm seed
+
+name: hivemindide
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hivemindide
+      POSTGRES_PASSWORD: hivemindide
+      POSTGRES_DB: hivemindide
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hivemindide -d hivemindide"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    # No persistence: leases and presence are meant to die with the process.
+    # A lease that survived a restart would outlive the editor that held it.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  permissiond:
+    build:
+      context: ../services/permission
+    environment:
+      PERMISSION_ADDR: "0.0.0.0:8081"
+      PERMISSION_DATABASE_URL: "postgres://hivemindide:hivemindide@postgres:5432/hivemindide?sslmode=disable"
+    ports:
+      - "127.0.0.1:8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  coordinationd:
+    build:
+      context: ../services/coordination
+    environment:
+      COORDINATION_ADDR: "0.0.0.0:8082"
+      COORDINATION_REDIS_ADDR: "redis:6379"
+    ports:
+      - "127.0.0.1:8082:8082"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # One-shot: loads the demo repo, users and roles. Not started by `up`.
+  seed:
+    build:
+      context: ../services/permission
+    entrypoint: ["/seed"]
+    environment:
+      PERMISSION_DATABASE_URL: "postgres://hivemindide:hivemindide@postgres:5432/hivemindide?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["tools"]
+
+volumes:
+  postgres-data:

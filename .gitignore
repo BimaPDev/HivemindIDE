@@ -1,0 +1,12 @@
+# The editor fork is a SIBLING repository (../hivemindide-editor), not a
+# subdirectory — see fork/README.md. Nothing to ignore for it here.
+
+# Build output
+dist/
+*.exe
+
+# Local overrides
+.env
+.env.local
+
+.DS_Store

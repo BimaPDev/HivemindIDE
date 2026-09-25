@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HivemindIDE — services status</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --line: #262b36; --text: #e6e9ef;
+    --muted: #8b93a7; --accent: #6ea8fe; --ok: #4ade80; --deny: #f87171;
+    --warn: #fbbf24; --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --human: #6ea8fe; --agent: #34d399; --junction: #5b6478;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px; background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+  .panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em;
+              color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  .row { display: flex; justify-content: space-between; gap: 12px;
+         padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .path { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .pill { font-size: 11px; padding: 1px 7px; border-radius: 99px;
+          border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .pill.agent { color: var(--warn); border-color: var(--warn); }
+  .pill.human { color: var(--accent); border-color: var(--accent); }
+  .pill.active { color: var(--ok); border-color: var(--ok); }
+  .pill.idle { color: var(--muted); }
+  .pill.done { color: var(--muted); opacity: .7; }
+  .ok { color: var(--ok); } .deny { color: var(--deny); }
+  #log { font-family: var(--mono); font-size: 11.5px; max-height: 300px;
+         overflow-y: auto; margin: 0; }
+  #log div { padding: 3px 0; border-bottom: 1px solid var(--line); }
+  input, button, select {
+    background: #0c0e12; color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: inherit;
+  }
+  button { cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .status { font-size: 12px; }
+  .empty { color: var(--muted); font-size: 12px; font-style: italic; }
+
+  /* —— Agent spawn tree —— */
+  .tree-wrap {
+    overflow-x: auto; padding: 8px 4px 16px;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(110,168,254,.06), transparent 55%),
+      linear-gradient(180deg, #12151c 0%, var(--panel) 100%);
+    border: 1px solid var(--line); border-radius: 8px;
+  }
+  .tree {
+    display: flex; flex-direction: column; align-items: center;
+    min-width: max-content; margin: 0 auto; gap: 0;
+  }
+  .tree-node {
+    width: 168px; padding: 10px 12px;
+    background: #0c0e12; border: 1px solid var(--line); border-radius: 8px;
+    text-align: left; position: relative;
+  }
+  .tree-node.root { border-color: color-mix(in srgb, var(--human) 45%, var(--line)); width: 200px; }
+  .tree-node.agent { border-color: color-mix(in srgb, var(--agent) 40%, var(--line)); }
+  .tree-node .who {
+    font-size: 13px; font-weight: 600; letter-spacing: .01em;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .tree-node .author {
+    font-size: 11px; color: var(--human); margin-bottom: 4px; font-weight: 500;
+  }
+  .tree-node .model {
+    margin-top: 4px; font-family: var(--mono); font-size: 11.5px; color: var(--muted);
+  }
+  .tree-node .model strong { color: var(--agent); font-weight: 500; }
+  .tree-node .meta { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .edge-v {
+    width: 2px; height: 18px; background: var(--junction); flex-shrink: 0;
+  }
+  .junction {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--bg); border: 2px solid var(--junction);
+    box-shadow: 0 0 0 3px rgba(91,100,120,.15); flex-shrink: 0;
+  }
+  .children-row {
+    display: flex; align-items: flex-start; justify-content: center;
+    position: relative; gap: 20px; margin-top: 0; padding-top: 18px;
+  }
+  .children-row::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--junction);
+    /* trim so the bar only spans first→last child centers */
+    left: var(--bar-left, 0); right: var(--bar-right, 0);
+    width: auto;
+  }
+  .child-branch {
+    display: flex; flex-direction: column; align-items: center;
+    position: relative;
+  }
+  .child-branch::before {
+    content: ""; position: absolute; top: -18px; left: 50%; width: 2px; height: 18px;
+    background: var(--junction); transform: translateX(-50%);
+  }
+  .tree-legend {
+    display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px;
+    font-size: 11px; color: var(--muted);
+  }
+  .tree-legend span::before {
+    content: ""; display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; margin-right: 6px; vertical-align: middle;
+  }
+  .tree-legend .lg-human::before { background: var(--human); }
+  .tree-legend .lg-agent::before { background: var(--agent); }
+  .tree-legend .lg-edge::before {
+    border-radius: 0; width: 12px; height: 2px; background: var(--junction);
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+<h1>HivemindIDE services</h1>
+<div class="sub">
+  Live view of <code>permissiond</code> (:8081) and <code>coordinationd</code> (:8082).
+  This page is the MVP stand-in for the fork's native sidebar — same data, same stream.
+</div>
+
+<div class="panel" style="margin-bottom:16px">
+  <h2>Agent spawn tree <span class="pill">prototype</span></h2>
+  <div class="muted" style="margin-bottom:12px">
+    One root box: author + parent AI + model · then edges to sub-agents.
+    Mock run until <code>agent.spawned</code> lands on the stream.
+  </div>
+  <div class="tree-wrap">
+    <div id="agentTree" class="tree"></div>
+  </div>
+  <div class="tree-legend">
+    <span class="lg-human">Author + parent AI</span>
+    <span class="lg-agent">Sub-agent · model</span>
+    <span class="lg-edge">spawn edge</span>
+  </div>
+  <div class="controls">
+    <button id="reshuffleTree" type="button">Resample mock run</button>
+  </div>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <h2>Presence <span id="wsState" class="status muted">connecting…</span></h2>
+    <div id="sessions"></div>
+    <h2 style="margin-top:20px">Held leases</h2>
+    <div id="leases"></div>
+    <label for="repo">Repo ID</label>
+    <input id="repo" style="width:100%"
+           value="11111111-1111-4111-8111-111111111111">
+    <div class="controls">
+      <button id="reconnect">Reconnect stream</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Permission filter</h2>
+    <label for="user">Ask as</label>
+    <select id="user" style="width:100%">
+      <option value="22222222-2222-4222-8222-222222222222">Bima — senior-eng</option>
+      <option value="33333333-3333-4333-8333-333333333333">Dani — contractor</option>
+    </select>
+    <label for="paths">Paths the AI panel wants (one per line)</label>
+    <textarea id="paths" rows="6" style="width:100%;background:#0c0e12;color:var(--text);
+      border:1px solid var(--line);border-radius:6px;padding:8px;font-family:var(--mono);
+      font-size:12px">src/billing/charge.go
+infra/prod/secrets.tf
+infra/staging/db.tf
+src/app/.env
+docs/architecture.md</textarea>
+    <div class="controls"><button id="filter">Filter context</button></div>
+    <div id="filterResult" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top:16px">
+  <h2>Event stream</h2>
+  <div id="log"></div>
+</div>
+
+<script>
+const PERMISSION = "http://127.0.0.1:8081";
+const COORDINATION = "http://127.0.0.1:8082";
+
+const $ = (id) => document.getElementById(id);
+let socket = null;
+
+function log(line, cls) {
+  const el = document.createElement("div");
+  el.textContent = new Date().toLocaleTimeString() + "  " + line;
+  if (cls) el.className = cls;
+  $("log").prepend(el);
+  while ($("log").childElementCount > 200) $("log").lastChild.remove();
+}
+
+function renderSessions(sessions) {
+  const host = $("sessions");
+  host.innerHTML = "";
+  if (!sessions || !sessions.length) {
+    host.innerHTML = '<div class="empty">Nobody here. Send a heartbeat to appear.</div>';
+    return;
+  }
+  for (const s of sessions) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <div>
+        <div>${escapeHTML(s.display_name || s.session_id)}
+             <span class="pill ${s.kind}">${s.kind}</span></div>
+        <div class="path muted">${escapeHTML(s.current_path || "no file open")}</div>
+      </div>`;
+    host.append(row);
+  }
+}
+
+function renderLeases(leases) {
+  const host = $("leases");
+  host.innerHTML = "";
+  if (!leases || !leases.length) {
+    host.innerHTML = '<div class="empty">No files are leased right now.</div>';
+    return;
+  }
+  for (const l of leases) {
+    const row = document.createElement("div");
+    row.className = "row";
+    const secs = Math.max(0, Math.round((new Date(l.expires_at) - Date.now()) / 1000));
+    row.innerHTML = `
+      <div class="path">${escapeHTML(l.path)}</div>
+      <div class="muted">${escapeHTML(l.session_id)} · ${secs}s left</div>`;
+    host.append(row);
+  }
+}
+
+/* ---------- Agent spawn tree (mock until stream events exist) ---------- */
+
+const MOCK_RUNS = [
+  {
+    run_id: "run-demo-1",
+    root: {
+      id: "run-root", kind: "root", author: "Bima", label: "HivemindIDE", model: "sonnet-4", status: "active",
+      children: [
+        { id: "a1", kind: "agent", label: "Explore", model: "haiku", status: "active", children: [] },
+        { id: "a2", kind: "agent", label: "Edit", model: "sonnet-4", status: "idle", children: [
+          { id: "a2a", kind: "agent", label: "Tests", model: "haiku", status: "active", children: [] },
+        ]},
+        { id: "a3", kind: "agent", label: "Review", model: "opus", status: "done", children: [] },
+      ],
+    },
+  },
+  {
+    run_id: "run-demo-2",
+    root: {
+      id: "run-root", kind: "root", author: "Dani", label: "HivemindIDE", model: "gpt-5", status: "active",
+      children: [
+        { id: "b1", kind: "agent", label: "Search", model: "kimi-k2", status: "active", children: [] },
+        { id: "b2", kind: "agent", label: "Patch", model: "gpt-5", status: "active", children: [] },
+      ],
+    },
+  },
+  {
+    run_id: "run-demo-3",
+    root: {
+      id: "run-root", kind: "root", author: "Bima", label: "HivemindIDE", model: "sonnet-4", status: "active",
+      children: [
+        { id: "c1", kind: "agent", label: "Docs", model: "haiku", status: "idle", children: [] },
+      ],
+    },
+  },
+];
+
+function nodeCard(node) {
+  const isRoot = node.kind === "root";
+  const authorLine = isRoot && node.author
+    ? `<div class="author">${escapeHTML(node.author)}</div>`
+    : "";
+  const modelLine = node.model
+    ? `<div class="model">model <strong>${escapeHTML(node.model)}</strong></div>`
+    : "";
+  return `
+    <div class="tree-node ${node.kind}" data-id="${escapeHTML(node.id)}">
+      ${authorLine}
+      <div class="who">
+        <span>${escapeHTML(node.label)}</span>
+        <span class="pill ${isRoot ? "human" : "agent"}">${isRoot ? "run" : "sub"}</span>
+      </div>
+      ${modelLine}
+      <div class="meta"><span class="pill ${node.status}">${escapeHTML(node.status)}</span></div>
+    </div>`;
+}
+
+/** Recursively build: card → edge → circle → children fan-out */
+function buildBranch(node) {
+  const wrap = document.createElement("div");
+  wrap.className = "child-branch";
+  wrap.innerHTML = nodeCard(node);
+
+  const kids = node.children || [];
+  if (!kids.length) return wrap;
+
+  const edge = document.createElement("div");
+  edge.className = "edge-v";
+  wrap.append(edge);
+
+  const junction = document.createElement("div");
+  junction.className = "junction";
+  wrap.append(junction);
+
+  const edge2 = document.createElement("div");
+  edge2.className = "edge-v";
+  wrap.append(edge2);
+
+  const row = document.createElement("div");
+  row.className = "children-row";
+  for (const child of kids) {
+    row.append(buildBranch(child));
+  }
+  wrap.append(row);
+
+  // After layout, trim the horizontal bar to first/last child centers.
+  requestAnimationFrame(() => {
+    const branches = [...row.children];
+    if (branches.length < 2) {
+      row.style.setProperty("--bar-left", "50%");
+      row.style.setProperty("--bar-right", "50%");
+      return;
+    }
+    const rowRect = row.getBoundingClientRect();
+    const first = branches[0].getBoundingClientRect();
+    const last = branches[branches.length - 1].getBoundingClientRect();
+    const left = first.left + first.width / 2 - rowRect.left;
+    const right = rowRect.right - (last.left + last.width / 2);
+    row.style.setProperty("--bar-left", `${left}px`);
+    row.style.setProperty("--bar-right", `${right}px`);
+  });
+
+  return wrap;
+}
+
+function renderAgentTree(tree) {
+  const host = $("agentTree");
+  host.innerHTML = "";
+  if (!tree || !tree.root) {
+    host.innerHTML = '<div class="empty">No active agent run.</div>';
+    return;
+  }
+  // Root sits alone; its single child (parent AI) hangs below via the same builder.
+  const rootWrap = document.createElement("div");
+  rootWrap.style.display = "flex";
+  rootWrap.style.flexDirection = "column";
+  rootWrap.style.alignItems = "center";
+  rootWrap.append(buildBranch(tree.root));
+  host.append(rootWrap);
+  log(`agent tree: ${tree.run_id}`);
+}
+
+function sampleMockTree() {
+  const tree = MOCK_RUNS[Math.floor(Math.random() * MOCK_RUNS.length)];
+  renderAgentTree(tree);
+}
+
+function connect() {
+  if (socket) { socket.close(); socket = null; }
+  const repo = $("repo").value.trim();
+  if (!repo) return;
+
+  const url = COORDINATION.replace(/^http/, "ws") + `/v1/presence/${repo}/stream`;
+  socket = new WebSocket(url);
+
+  socket.onopen = () => {
+    $("wsState").textContent = "live";
+    $("wsState").className = "status ok";
+    log("stream connected", "ok");
+  };
+  socket.onclose = () => {
+    $("wsState").textContent = "disconnected";
+    $("wsState").className = "status deny";
+    log("stream closed — retrying in 3s", "deny");
+    setTimeout(connect, 3000);
+  };
+  socket.onerror = () => log("stream error", "deny");
+
+  socket.onmessage = (msg) => {
+    let ev;
+    try { ev = JSON.parse(msg.data); } catch { return; }
+
+    if (ev.type === "snapshot") {
+      renderSessions(ev.data.sessions);
+      renderLeases(ev.data.leases);
+      log("snapshot: " + (ev.data.sessions || []).length + " session(s), " +
+          (ev.data.leases || []).length + " lease(s)");
+      return;
+    }
+
+    // Planned frames — when coordinationd emits them, render live.
+    if (ev.type === "agent.tree" || ev.type === "agent.spawned" ||
+        ev.type === "agent.status" || ev.type === "agent.finished") {
+      if (ev.data && ev.data.root) renderAgentTree(ev.data);
+      log(ev.type + "  " + JSON.stringify(ev.data));
+      return;
+    }
+
+    log(ev.type + "  " + JSON.stringify(ev.data),
+        ev.type.endsWith("denied") || ev.type.endsWith("expired") ? "deny" : "");
+
+    refresh();
+  };
+}
+
+async function refresh() {
+  const repo = $("repo").value.trim();
+  try {
+    const res = await fetch(`${COORDINATION}/v1/presence/${repo}`);
+    const snap = await res.json();
+    renderSessions(snap.sessions);
+    renderLeases(snap.leases);
+  } catch (err) {
+    log("presence fetch failed: " + err.message, "deny");
+  }
+}
+
+async function runFilter() {
+  const paths = $("paths").value.split("\n").map(s => s.trim()).filter(Boolean);
+  const body = {
+    user_id: $("user").value,
+    repo_id: $("repo").value.trim(),
+    intent: "read",
+    paths,
+  };
+  const host = $("filterResult");
+  try {
+    const res = await fetch(`${PERMISSION}/v1/context/filter`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const out = await res.json();
+    if (out.error) {
+      host.innerHTML = `<div class="deny">${escapeHTML(out.error.message)}</div>`;
+      return;
+    }
+    host.innerHTML = "";
+    for (const p of out.allowed) {
+      host.insertAdjacentHTML("beforeend",
+        `<div class="row"><span class="path ok">✓ ${escapeHTML(p)}</span>
+         <span class="muted">sent to model</span></div>`);
+    }
+    for (const d of out.denied) {
+      host.insertAdjacentHTML("beforeend",
+        `<div class="row"><span class="path deny">✕ ${escapeHTML(d.path)}</span>
+         <span class="muted" style="text-align:right;max-width:55%">
+           ${escapeHTML(d.reason)}${d.matched_rule
+             ? `<br><code>${escapeHTML(d.matched_rule.pattern)}</code>` : ""}
+         </span></div>`);
+    }
+    log(`filter: ${out.allowed.length} allowed, ${out.denied.length} denied`);
+  } catch (err) {
+    host.innerHTML = `<div class="deny">${escapeHTML(err.message)}</div>`;
+  }
+}
+
+function escapeHTML(s) {
+  return String(s ?? "").replace(/[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+$("filter").addEventListener("click", runFilter);
+$("reconnect").addEventListener("click", connect);
+$("repo").addEventListener("change", connect);
+$("reshuffleTree").addEventListener("click", sampleMockTree);
+
+sampleMockTree();
+connect();
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

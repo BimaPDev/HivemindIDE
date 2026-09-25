@@ -1,0 +1,45 @@
+name: fork
+
+# Building the editor is an hour-plus job that pulls gigabytes and compiles
+# native modules, so it does not run on every push. Trigger it by hand, or on a
+# tag, once Phase 0 is stable.
+#
+# Expect this to be the flakiest thing in the repo. Electron builds break on
+# runner image changes, Node version drift and upstream VS Code bumps. Budget
+# time for keeping it green, or accept that the fork is built locally and let CI
+# cover only the services.
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Typecheck the fork integration code
+        run: npx --yes -p typescript@5 tsc --project fork/integration/tsconfig.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build dependencies
+        run: brew install jq
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Bootstrap and build the fork
+        env:
+          HIVEMINDIDE_FORK_DIR: ${{ runner.temp }}/vscodium
+        run: ./fork/bootstrap.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hivemindide-darwin
+          path: ${{ runner.temp }}/vscodium/VSCode-darwin-*
+          retention-days: 7
+          if-no-files-found: error
