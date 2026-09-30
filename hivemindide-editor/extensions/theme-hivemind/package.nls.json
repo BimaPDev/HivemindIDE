@@ -1,0 +1,11 @@
+{
+	"displayName": "Hivemind Themes",
+	"description": "HivemindIDE's default themes: matte black with mirrored-lens accents. Dynamic gives each kind of code its own lens color; the single-lens themes use one.",
+	"dynamicThemeLabel": "Hivemind Dynamic",
+	"emberThemeLabel": "Hivemind Ember",
+	"jadeThemeLabel": "Hivemind Jade",
+	"cobaltThemeLabel": "Hivemind Cobalt",
+	"violetThemeLabel": "Hivemind Violet",
+	"chromeThemeLabel": "Hivemind Chrome",
+	"lightThemeLabel": "Hivemind Light"
+}

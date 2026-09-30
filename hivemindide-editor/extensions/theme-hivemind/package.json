@@ -1,0 +1,58 @@
+{
+  "name": "theme-hivemind",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "1.0.0",
+  "publisher": "hivemindide",
+  "license": "MIT",
+  "engines": {
+    "vscode": "*"
+  },
+  "categories": ["Themes"],
+  "contributes": {
+    "themes": [
+      {
+        "id": "Hivemind Dynamic",
+        "label": "%dynamicThemeLabel%",
+        "uiTheme": "vs-dark",
+        "path": "./themes/hivemind-dynamic.json"
+      },
+      {
+        "id": "Hivemind Ember",
+        "label": "%emberThemeLabel%",
+        "uiTheme": "vs-dark",
+        "path": "./themes/hivemind-ember.json"
+      },
+      {
+        "id": "Hivemind Jade",
+        "label": "%jadeThemeLabel%",
+        "uiTheme": "vs-dark",
+        "path": "./themes/hivemind-jade.json"
+      },
+      {
+        "id": "Hivemind Cobalt",
+        "label": "%cobaltThemeLabel%",
+        "uiTheme": "vs-dark",
+        "path": "./themes/hivemind-cobalt.json"
+      },
+      {
+        "id": "Hivemind Violet",
+        "label": "%violetThemeLabel%",
+        "uiTheme": "vs-dark",
+        "path": "./themes/hivemind-violet.json"
+      },
+      {
+        "id": "Hivemind Chrome",
+        "label": "%chromeThemeLabel%",
+        "uiTheme": "vs-dark",
+        "path": "./themes/hivemind-chrome.json"
+      },
+      {
+        "id": "Hivemind Light",
+        "label": "%lightThemeLabel%",
+        "uiTheme": "vs",
+        "path": "./themes/hivemind-light.json"
+      }
+    ]
+  }
+}
