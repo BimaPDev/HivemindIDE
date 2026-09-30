@@ -1,0 +1,184 @@
+/*---------------------------------------------------------------------------------------------
+ *  User sidebar — nested icon rail + content (lives inside the sidebar, not the activity bar).
+ *--------------------------------------------------------------------------------------------*/
+
+.hivemindide-user-shell {
+	display: flex;
+	height: 100%;
+	width: 100%;
+	box-sizing: border-box;
+	color: var(--vscode-sideBar-foreground);
+	background: var(--vscode-sideBar-background);
+	overflow: hidden;
+}
+
+.hivemindide-user-rail {
+	flex: 0 0 40px;
+	width: 40px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 6px 0;
+	gap: 2px;
+	box-sizing: border-box;
+	border-right: 1px solid var(--vscode-sideBar-border, var(--vscode-panel-border));
+	background: var(--vscode-sideBarSectionHeader-background, transparent);
+}
+
+.hivemindide-user-rail-btn {
+	width: 40px;
+	height: 36px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	background: transparent;
+	color: var(--vscode-sideBar-foreground);
+	cursor: pointer;
+	position: relative;
+	padding: 0;
+	opacity: 0.65;
+}
+
+.hivemindide-user-rail-btn:hover {
+	opacity: 1;
+}
+
+.hivemindide-user-rail-btn.active {
+	opacity: 1;
+}
+
+.hivemindide-user-rail-btn.active::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 8px;
+	bottom: 8px;
+	width: 2px;
+	border-radius: 0 2px 2px 0;
+	background: var(--vscode-focusBorder);
+}
+
+.hivemindide-user-rail-btn .codicon {
+	font-size: 18px;
+}
+
+.hivemindide-user-rail-spacer {
+	flex: 1;
+}
+
+.hivemindide-user-content {
+	flex: 1;
+	min-width: 0;
+	height: 100%;
+	overflow: auto;
+	box-sizing: border-box;
+	padding: 14px 14px 24px;
+}
+
+.hivemindide-user-content-title {
+	font-size: 13px;
+	font-weight: 600;
+	margin: 0 0 4px;
+}
+
+.hivemindide-user-content-subtitle {
+	font-size: 12px;
+	opacity: 0.7;
+	margin: 0 0 16px;
+	line-height: 1.4;
+}
+
+.hivemindide-user-action {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 9px 10px;
+	margin: 0 0 4px;
+	border: 1px solid transparent;
+	border-radius: 6px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-size: 13px;
+	text-align: left;
+	cursor: pointer;
+}
+
+.hivemindide-user-action:hover {
+	background: var(--vscode-list-hoverBackground);
+}
+
+.hivemindide-user-action:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: -1px;
+}
+
+.hivemindide-user-action-icon {
+	flex-shrink: 0;
+	width: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.hivemindide-user-action-label {
+	flex: 1;
+	min-width: 0;
+}
+
+.hivemindide-user-action-hint {
+	font-size: 11px;
+	opacity: 0.5;
+}
+
+.hivemindide-user-setting-row {
+	margin-bottom: 14px;
+}
+
+.hivemindide-user-setting-row-head {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin-bottom: 4px;
+}
+
+.hivemindide-user-setting-label {
+	font-size: 13px;
+	font-weight: 500;
+	margin: 0;
+}
+
+.hivemindide-user-setting-desc {
+	font-size: 12px;
+	opacity: 0.7;
+	line-height: 1.4;
+	margin: 0 0 6px;
+}
+
+.hivemindide-user-setting-input {
+	max-width: 100%;
+}
+
+.hivemindide-user-section-label {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	opacity: 0.6;
+	margin: 16px 0 8px;
+}
+
+.hivemindide-user-section-label:first-child {
+	margin-top: 0;
+}
+
+/* No "User" heading over the sidebar: the rail already says where you are.
+ * Scoped with :has() so only the part currently showing this view is affected;
+ * inactive views are removed from the DOM, so other views keep their titles.
+ * The activity bar tooltip and View menu still use the registered "User" name. */
+.part:has(.hivemindide-user-shell) .composite.title .title-label {
+	visibility: hidden;
+}

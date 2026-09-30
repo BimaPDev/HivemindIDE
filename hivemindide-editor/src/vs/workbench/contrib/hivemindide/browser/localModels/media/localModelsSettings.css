@@ -1,0 +1,177 @@
+/*---------------------------------------------------------------------------------------------
+ *  Local Models settings section. Single-column so it works in the narrow
+ *  User sidebar and the full-width HivemindIDE Settings page alike.
+ *--------------------------------------------------------------------------------------------*/
+
+.hivemindide-lm {
+	margin-top: 8px;
+	font-size: 13px;
+}
+
+.hivemindide-lm-heading {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	opacity: 0.7;
+	margin: 22px 0 10px;
+}
+
+.hivemindide-lm-heading.primary {
+	margin-top: 26px;
+}
+
+.hivemindide-lm-intro,
+.hivemindide-lm-note,
+.hivemindide-lm-empty {
+	font-size: 12px;
+	opacity: 0.7;
+	line-height: 1.4;
+	margin: 0 0 12px;
+}
+
+.hivemindide-lm-row {
+	margin-bottom: 14px;
+}
+
+.hivemindide-lm-label {
+	font-weight: 600;
+	margin: 0 0 3px;
+}
+
+.hivemindide-lm-desc {
+	font-size: 12px;
+	opacity: 0.7;
+	line-height: 1.4;
+	margin: 0 0 6px;
+}
+
+.hivemindide-lm-check {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 4px 0;
+}
+
+.hivemindide-lm-check .monaco-custom-toggle {
+	margin: 0;
+	flex-shrink: 0;
+}
+
+.hivemindide-lm-input,
+.hivemindide-lm-select {
+	max-width: 520px;
+}
+
+.hivemindide-lm-select .monaco-select-box {
+	width: 100%;
+	height: 26px;
+}
+
+.hivemindide-lm-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+.hivemindide-lm-buttons .monaco-button {
+	width: auto;
+	padding: 4px 10px;
+}
+
+.hivemindide-lm-status {
+	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+	border-radius: 6px;
+	padding: 10px 12px;
+	margin: 6px 0 14px;
+}
+
+.hivemindide-lm-status-line {
+	display: flex;
+	gap: 8px;
+	align-items: flex-start;
+	line-height: 1.4;
+	margin-bottom: 4px;
+	word-break: break-word;
+}
+
+.hivemindide-lm-status-line .codicon {
+	flex-shrink: 0;
+	margin-top: 1px;
+}
+
+.hivemindide-lm-models {
+	margin-bottom: 4px;
+}
+
+.hivemindide-lm-model {
+	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+	border-radius: 6px;
+	padding: 8px 10px;
+	margin-bottom: 6px;
+}
+
+.hivemindide-lm-model-name {
+	font-weight: 600;
+	word-break: break-all;
+}
+
+.hivemindide-lm-badge {
+	display: inline-block;
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	padding: 1px 6px;
+	margin-left: 6px;
+	border-radius: 8px;
+	vertical-align: 1px;
+	background: var(--vscode-badge-background);
+	color: var(--vscode-badge-foreground);
+}
+
+.hivemindide-lm-model-path {
+	font-size: 11px;
+	opacity: 0.6;
+	margin-top: 2px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hivemindide-lm-model-actions,
+.hivemindide-lm-copy {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 12px;
+	margin-top: 6px;
+}
+
+.hivemindide-lm-copy code {
+	font-size: 12px;
+	padding: 2px 6px;
+	border-radius: 4px;
+	background: var(--vscode-textCodeBlock-background);
+	word-break: break-all;
+}
+
+.hivemindide-lm-link {
+	border: none;
+	background: none;
+	padding: 0;
+	font: inherit;
+	font-size: 12px;
+	color: var(--vscode-textLink-foreground);
+	cursor: pointer;
+}
+
+.hivemindide-lm-link:hover {
+	color: var(--vscode-textLink-activeForeground);
+	text-decoration: underline;
+}
+
+.hivemindide-lm-link:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: 2px;
+}

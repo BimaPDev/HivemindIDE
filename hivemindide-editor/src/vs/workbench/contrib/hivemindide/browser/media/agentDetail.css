@@ -1,0 +1,435 @@
+/*---------------------------------------------------------------------------------------------
+ *  Agent review — rail (stage, stepper, meta) beside activity, checks, and diff.
+ *--------------------------------------------------------------------------------------------*/
+
+.monaco-workbench .hivemindide-agent-detail {
+	height: 100%;
+	overflow: auto;
+	background: var(--vscode-editor-background);
+	color: var(--vscode-editor-foreground);
+}
+
+.monaco-workbench .hivemindide-agent-detail-body {
+	min-height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.monaco-workbench .hivemindide-agent-detail-sidebar {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+}
+
+.monaco-workbench .hivemindide-agent-detail-back {
+	align-self: flex-start;
+	margin: 10px 12px 0;
+	padding: 4px 8px;
+	font-size: 12px;
+	background: transparent;
+	color: var(--vscode-textLink-foreground);
+	border: none;
+	cursor: pointer;
+	font-family: inherit;
+}
+
+.monaco-workbench .hivemindide-agent-detail-back:hover {
+	text-decoration: underline;
+}
+
+.monaco-workbench .hivemindide-agent-detail-layout {
+	display: grid;
+	grid-template-columns: minmax(220px, 268px) minmax(0, 1fr);
+	flex: 1;
+	min-height: 100%;
+	align-items: stretch;
+}
+
+.monaco-workbench .hivemindide-agent-detail-sidebar .hivemindide-agent-detail-layout {
+	grid-template-columns: 1fr;
+}
+
+.monaco-workbench .hivemindide-agent-detail-rail {
+	padding: 18px 16px 28px;
+	border-right: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+	background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+}
+
+.monaco-workbench .hivemindide-agent-detail-sidebar .hivemindide-agent-detail-rail {
+	border-right: none;
+	border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+}
+
+.monaco-workbench .hivemindide-agent-detail-stage-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.monaco-workbench .hivemindide-agent-detail-stage-sub {
+	margin-top: 6px;
+	font-size: 12px;
+	line-height: 1.45;
+	color: var(--vscode-descriptionForeground);
+}
+
+.monaco-workbench .hivemindide-agent-detail-stepper {
+	position: relative;
+	margin: 18px 0 22px;
+	display: flex;
+	flex-direction: column;
+}
+
+.monaco-workbench .hivemindide-agent-detail-stepper::before {
+	content: "";
+	position: absolute;
+	left: 7px;
+	top: 10px;
+	bottom: 10px;
+	width: 1px;
+	background: var(--vscode-panel-border, var(--vscode-widget-border));
+}
+
+.monaco-workbench .hivemindide-agent-detail-step {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 5px 0;
+	font-size: 12px;
+	position: relative;
+}
+
+.monaco-workbench .hivemindide-agent-detail-step.future {
+	opacity: 0.45;
+}
+
+.monaco-workbench .hivemindide-agent-detail-step.current {
+	font-weight: 600;
+}
+
+.monaco-workbench .hivemindide-agent-detail-step-mark {
+	width: 16px;
+	height: 16px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	z-index: 1;
+	background: var(--vscode-sideBar-background, var(--vscode-editor-background));
+	color: var(--vscode-foreground);
+	font-size: 14px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-meta-row {
+	display: grid;
+	grid-template-columns: 118px minmax(0, 1fr);
+	gap: 8px;
+	align-items: baseline;
+	font-size: 12px;
+	padding: 4px 0;
+}
+
+.monaco-workbench .hivemindide-agent-detail-meta-key {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--vscode-descriptionForeground);
+	min-width: 0;
+}
+
+.monaco-workbench .hivemindide-agent-detail-meta-key .hivemindide-agent-detail-icon {
+	font-size: 14px;
+	opacity: 0.85;
+}
+
+.monaco-workbench .hivemindide-agent-detail-meta-val {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.monaco-workbench .hivemindide-agent-detail-meta-val.mono {
+	font-family: var(--monaco-monospace-font);
+	font-size: 11px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-main {
+	padding: 22px 28px 36px;
+	min-width: 0;
+}
+
+.monaco-workbench .hivemindide-agent-detail-sidebar .hivemindide-agent-detail-main {
+	padding: 16px 14px 28px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-header {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin-bottom: 22px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 14px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-kill,
+.monaco-workbench .hivemindide-agent-detail-delete {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+	padding: 4px 10px;
+	border-radius: 6px;
+	border: 1px solid color-mix(in srgb, var(--vscode-errorForeground) 55%, transparent);
+	background: transparent;
+	color: var(--vscode-errorForeground);
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.monaco-workbench .hivemindide-agent-detail-kill:hover:not(:disabled),
+.monaco-workbench .hivemindide-agent-detail-delete:hover:not(:disabled) {
+	background: color-mix(in srgb, var(--vscode-errorForeground) 12%, transparent);
+}
+
+.monaco-workbench .hivemindide-agent-detail-kill:disabled,
+.monaco-workbench .hivemindide-agent-detail-delete:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.monaco-workbench .hivemindide-agent-detail-avatar {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	margin-top: 1px;
+	color: var(--vscode-textPreformat-foreground, #f38ba8);
+	background: color-mix(in srgb, var(--vscode-textPreformat-foreground, #f38ba8) 16%, transparent);
+	font-size: 16px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-badge {
+	font-size: 16px;
+	font-weight: 650;
+	line-height: 1.2;
+	color: var(--vscode-textPreformat-foreground, #f38ba8);
+}
+
+.monaco-workbench .hivemindide-agent-detail-subtitle {
+	margin-top: 3px;
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--vscode-descriptionForeground);
+}
+
+.monaco-workbench .hivemindide-agent-detail-activity {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	margin-bottom: 26px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-activity-row {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	font-size: 13px;
+	line-height: 1.45;
+	color: inherit;
+	background: transparent;
+	border: none;
+	padding: 0;
+	text-align: left;
+	font-family: inherit;
+	width: 100%;
+}
+
+button.hivemindide-agent-detail-activity-row {
+	cursor: pointer;
+	border-radius: 6px;
+}
+
+button.hivemindide-agent-detail-activity-row:hover .hivemindide-agent-detail-activity-title {
+	text-decoration: underline;
+}
+
+.monaco-workbench .hivemindide-agent-detail-activity-icon {
+	flex-shrink: 0;
+	opacity: 0.7;
+	margin-top: 2px;
+	font-size: 16px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-activity-title {
+	font-weight: 600;
+}
+
+.monaco-workbench .hivemindide-agent-detail-activity-text {
+	color: var(--vscode-descriptionForeground);
+}
+
+.monaco-workbench .hivemindide-agent-detail-section-title {
+	font-size: 13px;
+	font-weight: 600;
+	margin: 0 0 10px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.monaco-workbench .hivemindide-agent-detail-section-muted,
+.monaco-workbench .hivemindide-agent-detail-diff-summary {
+	font-weight: 400;
+	color: var(--vscode-descriptionForeground);
+}
+
+.monaco-workbench .hivemindide-agent-detail-diff-summary .add {
+	color: var(--vscode-gitDecoration-addedResourceForeground, #89d185);
+}
+
+.monaco-workbench .hivemindide-agent-detail-diff-summary .del {
+	color: var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c);
+}
+
+.monaco-workbench .hivemindide-agent-detail-checks,
+.monaco-workbench .hivemindide-agent-detail-diff {
+	margin-bottom: 22px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-checks-card,
+.monaco-workbench .hivemindide-agent-detail-diff-file {
+	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--vscode-editor-background);
+}
+
+.monaco-workbench .hivemindide-agent-detail-check-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	font-size: 12px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-check-row + .hivemindide-agent-detail-check-row {
+	border-top: 1px solid var(--vscode-panel-border, transparent);
+}
+
+.monaco-workbench .hivemindide-agent-detail-check-icon {
+	opacity: 0.75;
+	flex-shrink: 0;
+}
+
+.monaco-workbench .hivemindide-agent-detail-check-row code {
+	flex: 1;
+	font-family: var(--monaco-monospace-font);
+	font-size: 12px;
+	min-width: 0;
+}
+
+.monaco-workbench .hivemindide-agent-detail-check-status {
+	color: var(--vscode-descriptionForeground);
+	text-transform: lowercase;
+}
+
+.monaco-workbench .hivemindide-agent-detail-check-status.passed {
+	color: var(--vscode-gitDecoration-addedResourceForeground, #89d185);
+}
+
+.monaco-workbench .hivemindide-agent-detail-check-status.failed {
+	color: var(--vscode-errorForeground);
+}
+
+.monaco-workbench .hivemindide-agent-detail-diff-path {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 12px;
+	font-family: var(--monaco-monospace-font);
+	font-size: 12px;
+	border-bottom: 1px solid var(--vscode-panel-border, transparent);
+	background: color-mix(in srgb, var(--vscode-editor-background) 86%, var(--vscode-foreground));
+}
+
+.monaco-workbench .hivemindide-agent-detail-diff-code {
+	padding: 6px 0;
+	font-family: var(--monaco-monospace-font);
+	font-size: 12px;
+	line-height: 1.55;
+	overflow-x: auto;
+}
+
+.monaco-workbench .hivemindide-agent-detail-diff-line {
+	display: grid;
+	grid-template-columns: 42px 16px minmax(0, 1fr);
+	padding-right: 12px;
+	white-space: pre;
+}
+
+.monaco-workbench .hivemindide-agent-detail-diff-line .ln {
+	text-align: right;
+	padding-right: 10px;
+	color: var(--vscode-descriptionForeground);
+	user-select: none;
+}
+
+.monaco-workbench .hivemindide-agent-detail-diff-line .prefix {
+	opacity: 0.8;
+}
+
+.monaco-workbench .hivemindide-agent-detail-diff-line.add {
+	background: var(--vscode-diffEditor-insertedLineBackground, rgba(155, 185, 85, 0.2));
+	color: var(--vscode-gitDecoration-addedResourceForeground, inherit);
+}
+
+.monaco-workbench .hivemindide-agent-detail-diff-line.del {
+	background: var(--vscode-diffEditor-removedLineBackground, rgba(255, 0, 0, 0.2));
+	color: var(--vscode-gitDecoration-deletedResourceForeground, inherit);
+}
+
+.monaco-workbench .hivemindide-agent-detail-footers {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.monaco-workbench .hivemindide-agent-detail-footer-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+	color: var(--vscode-descriptionForeground);
+}
+
+@media (max-width: 720px) {
+	.monaco-workbench .hivemindide-agent-detail-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.monaco-workbench .hivemindide-agent-detail-rail {
+		border-right: none;
+		border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+	}
+}

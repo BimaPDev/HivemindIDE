@@ -1,0 +1,104 @@
+/*---------------------------------------------------------------------------------------------
+ *  HivemindIDE settings page (layer 1).
+ *--------------------------------------------------------------------------------------------*/
+
+.hivemindide-settings {
+	height: 100%;
+	overflow: auto;
+	box-sizing: border-box;
+	padding: 24px 32px 48px;
+	color: var(--vscode-foreground);
+	background: var(--vscode-editor-background);
+}
+
+.hivemindide-settings-inner {
+	max-width: 720px;
+	margin: 0 auto;
+}
+
+.hivemindide-settings-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+	margin-bottom: 28px;
+}
+
+.hivemindide-settings-title {
+	font-size: 26px;
+	font-weight: 600;
+	line-height: 1.2;
+	margin: 0 0 6px;
+}
+
+.hivemindide-settings-subtitle {
+	margin: 0;
+	opacity: 0.75;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.hivemindide-settings-vscode-btn {
+	flex-shrink: 0;
+}
+
+.hivemindide-settings-section {
+	margin-bottom: 28px;
+	padding-bottom: 20px;
+	border-bottom: 1px solid var(--vscode-settings-headerBorder, var(--vscode-panel-border));
+}
+
+.hivemindide-settings-section:last-of-type {
+	border-bottom: none;
+}
+
+.hivemindide-settings-section-title {
+	font-size: 16px;
+	font-weight: 600;
+	margin: 0 0 14px;
+}
+
+.hivemindide-settings-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	margin-bottom: 16px;
+}
+
+.hivemindide-settings-row-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.hivemindide-settings-row-label {
+	font-size: 13px;
+	font-weight: 500;
+	margin: 0 0 4px;
+}
+
+.hivemindide-settings-row-description {
+	font-size: 12px;
+	opacity: 0.75;
+	line-height: 1.45;
+	margin: 0;
+}
+
+.hivemindide-settings-row-control {
+	flex-shrink: 0;
+	padding-top: 2px;
+}
+
+.hivemindide-settings-row.hivemindide-settings-row-input {
+	flex-direction: column;
+	gap: 8px;
+}
+
+.hivemindide-settings-row-input .hivemindide-settings-input {
+	width: 100%;
+	max-width: 420px;
+}
+
+.hivemindide-settings-footer {
+	margin-top: 8px;
+	padding-top: 8px;
+}

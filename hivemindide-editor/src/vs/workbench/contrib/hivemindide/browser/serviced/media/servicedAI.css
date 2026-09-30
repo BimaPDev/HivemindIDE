@@ -1,0 +1,144 @@
+/*---------------------------------------------------------------------------------------------
+ *  Serviced AI settings section. Builds on the Local Models section's classes
+ *  (.hivemindide-lm-*); these add service cards, health badges and combos.
+ *--------------------------------------------------------------------------------------------*/
+
+.hivemindide-sai-card {
+	border: 1px solid var(--vscode-widget-border, var(--vscode-editorWidget-border, transparent));
+	border-radius: 6px;
+	padding: 10px 12px;
+	margin-bottom: 10px;
+	background: var(--vscode-editorWidget-background, transparent);
+}
+
+.hivemindide-sai-card.off {
+	opacity: 0.6;
+}
+
+.hivemindide-sai-card-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.hivemindide-sai-name {
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hivemindide-sai-health {
+	font-size: 11px;
+	padding: 1px 7px;
+	border-radius: 10px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 60%;
+	border: 1px solid currentColor;
+}
+
+.hivemindide-sai-health.ready {
+	color: var(--vscode-testing-iconPassed, var(--vscode-charts-green));
+}
+
+.hivemindide-sai-health.resting {
+	color: var(--vscode-editorWarning-foreground, var(--vscode-charts-yellow));
+}
+
+.hivemindide-sai-health.off {
+	color: var(--vscode-descriptionForeground);
+}
+
+.hivemindide-sai-line {
+	font-size: 12px;
+	line-height: 1.5;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hivemindide-sai-line.dim {
+	opacity: 0.6;
+}
+
+.hivemindide-sai-line.error {
+	color: var(--vscode-errorForeground);
+}
+
+.hivemindide-sai-targets {
+	margin: 8px 0 4px;
+}
+
+.hivemindide-sai-target {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+	margin-bottom: 4px;
+}
+
+.hivemindide-sai-target-index {
+	opacity: 0.6;
+	min-width: 1.5em;
+}
+
+.hivemindide-sai-target-route {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.hivemindide-sai-target-route.missing {
+	text-decoration: line-through;
+	opacity: 0.6;
+}
+
+.hivemindide-sai-target .hivemindide-lm-model-actions {
+	margin: 0;
+}
+
+.hivemindide-sai-weight {
+	width: 56px;
+}
+
+.hivemindide-sai-usage {
+	margin-bottom: 8px;
+}
+
+.hivemindide-sai-card.compact {
+	padding: 8px 12px;
+	margin-bottom: 8px;
+}
+
+.hivemindide-sai-kind {
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	opacity: 0.7;
+}
+
+.hivemindide-sai-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 4px 0;
+}
+
+.hivemindide-sai-chip {
+	font-size: 11px;
+	padding: 1px 6px;
+	border-radius: 4px;
+	background: var(--vscode-badge-background);
+	color: var(--vscode-badge-foreground);
+}
+
+.hivemindide-sai-chip.warn {
+	background: transparent;
+	color: var(--vscode-editorWarning-foreground, var(--vscode-charts-yellow));
+	border: 1px solid currentColor;
+}

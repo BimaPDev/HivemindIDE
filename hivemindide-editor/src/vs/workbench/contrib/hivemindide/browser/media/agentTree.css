@@ -1,0 +1,380 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------------------------
+ *  Agent spawn tree styles — author+AI root → junction → sub-agents.
+ *--------------------------------------------------------------------------------------------*/
+
+.monaco-workbench .hivemindide-agent-tree {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.monaco-workbench .hivemindide-agent-tree-status {
+	padding: 6px 12px;
+	font-size: 11px;
+	opacity: 0.75;
+	border-bottom: 1px solid var(--vscode-panel-border, transparent);
+	flex-shrink: 0;
+}
+
+.monaco-workbench .hivemindide-agent-tree-status.live {
+	color: var(--vscode-charts-green, #89d185);
+}
+
+.monaco-workbench .hivemindide-agent-tree-status.muted {
+	color: var(--vscode-descriptionForeground);
+}
+
+.monaco-workbench .hivemindide-agent-tree-status.error {
+	color: var(--vscode-errorForeground);
+}
+
+.monaco-workbench .hivemindide-agent-tree-pane {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.monaco-workbench .hivemindide-agent-tree-scroll {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	justify-content: safe center;
+	align-items: safe center;
+	overflow: auto;
+	padding: 40px 12px 24px; /* room for the zoom controls */
+}
+
+.monaco-workbench .hivemindide-agent-tree-empty {
+	padding: 16px 12px;
+	opacity: 0.7;
+	font-style: italic;
+}
+
+.monaco-workbench .hivemindide-agent-tree-host {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: max-content;
+	--hivemindide-card-width: 168px;
+}
+
+.monaco-workbench .hivemindide-agent-branch {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	position: relative;
+}
+
+.monaco-workbench .hivemindide-agent-card {
+	position: relative;
+	box-sizing: border-box;
+	width: var(--hivemindide-card-width);
+	padding: 10px 12px;
+	background: var(--vscode-sideBar-background);
+	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+	border-radius: 8px;
+	text-align: left;
+	cursor: pointer;
+}
+
+.monaco-workbench .hivemindide-agent-card:hover {
+	border-color: var(--vscode-focusBorder, var(--vscode-textLink-foreground));
+}
+
+.monaco-workbench .hivemindide-agent-card:focus {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: 1px;
+}
+
+/* Running cards use the chat input's border beam. The comet also steps through
+   the theme's beam colors, one hue per lap, the same way the composer does. */
+@property --hivemind-card-beam {
+	syntax: '<color>';
+	inherits: false;
+	initial-value: #ff7a1a;
+}
+
+@keyframes hivemind-card-beam-cycle {
+	0%, 18% { --hivemind-card-beam: var(--vscode-hivemind-beam1, #ff7a1a); }
+	20%, 38% { --hivemind-card-beam: var(--vscode-hivemind-beam2, #b8ff3c); }
+	40%, 58% { --hivemind-card-beam: var(--vscode-hivemind-beam3, #3d9bff); }
+	60%, 78% { --hivemind-card-beam: var(--vscode-hivemind-beam4, #a86bff); }
+	80%, 98% { --hivemind-card-beam: var(--vscode-hivemind-beam5, #e6e6e6); }
+	100% { --hivemind-card-beam: var(--vscode-hivemind-beam1, #ff7a1a); }
+}
+
+/* Unlike the chat input, a card keeps its outline under the beam: its background matches the view's, so without the border only the comet would show where it is. */
+.monaco-workbench .hivemindide-agent-card.running {
+	--chat-input-anim-duration: 3s;
+	overflow: visible;
+}
+
+.monaco-workbench .hivemindide-agent-card.running::before,
+.monaco-workbench .hivemindide-agent-card.running::after {
+	content: '';
+	position: absolute;
+	inset: -1px;
+	border-radius: inherit;
+	pointer-events: none;
+	-webkit-mask:
+		linear-gradient(#000 0 0) content-box,
+		linear-gradient(#000 0 0);
+	mask:
+		linear-gradient(#000 0 0) content-box,
+		linear-gradient(#000 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	animation:
+		chat-input-working-border-spin var(--chat-input-anim-duration) linear infinite,
+		hivemind-card-beam-cycle calc(var(--chat-input-anim-duration) * 5) linear infinite;
+}
+
+.monaco-workbench .hivemindide-agent-card.running::before {
+	padding: 1px;
+	z-index: 2;
+	background: conic-gradient(from var(--chat-input-anim-angle, 135deg),
+		transparent 0deg,
+		color-mix(in srgb, var(--hivemind-card-beam) 90%, transparent) 20deg,
+		var(--hivemind-card-beam) 30deg,
+		color-mix(in srgb, var(--hivemind-card-beam) 60%, transparent) 50deg,
+		transparent 90deg,
+		transparent 360deg);
+}
+
+.monaco-workbench .hivemindide-agent-card.running::after {
+	padding: 2px;
+	filter: blur(1.5px);
+	z-index: 1;
+	background: conic-gradient(from var(--chat-input-anim-angle, 135deg),
+		transparent 0deg,
+		color-mix(in srgb, var(--hivemind-card-beam) 60%, transparent) 25deg,
+		color-mix(in srgb, var(--hivemind-card-beam) 35%, transparent) 50deg,
+		transparent 90deg,
+		transparent 360deg);
+}
+
+/* The workbench class rather than the media query, so `workbench.reduceMotion` decides (see visor.css). */
+.monaco-workbench.monaco-reduce-motion .hivemindide-agent-card.running::before,
+.monaco-workbench.monaco-reduce-motion .hivemindide-agent-card.running::after {
+	animation: none;
+}
+
+.monaco-workbench.monaco-reduce-motion .hivemindide-agent-card.running {
+	border-color: var(--hivemind-card-beam);
+}
+
+.monaco-workbench .hivemindide-agent-author {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--vscode-textLink-foreground);
+	margin-bottom: 4px;
+}
+
+.monaco-workbench .hivemindide-agent-who {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.monaco-workbench .hivemindide-agent-who > span {
+	flex: 1;
+	min-width: 0;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 4;
+	overflow: hidden;
+	overflow-wrap: anywhere;
+}
+
+.monaco-workbench .hivemindide-agent-who > .hivemindide-agent-pill {
+	flex-shrink: 0;
+}
+
+.monaco-workbench .hivemindide-agent-model {
+	margin-top: 4px;
+	font-size: 11px;
+	font-family: var(--monaco-monospace-font);
+	opacity: 0.8;
+}
+
+.monaco-workbench .hivemindide-agent-model strong {
+	font-weight: 600;
+	color: var(--vscode-charts-green, #89d185);
+	opacity: 1;
+}
+
+.monaco-workbench .hivemindide-agent-meta {
+	margin-top: 6px;
+}
+
+.monaco-workbench .hivemindide-agent-pill {
+	display: inline-block;
+	font-size: 10px;
+	padding: 1px 7px;
+	border-radius: 99px;
+	border: 1px solid var(--vscode-panel-border, var(--vscode-widget-border));
+	opacity: 0.85;
+	text-transform: lowercase;
+}
+
+.monaco-workbench .hivemindide-agent-pill.active,
+.monaco-workbench .hivemindide-agent-pill.running {
+	color: var(--vscode-charts-green, #89d185);
+	border-color: var(--vscode-charts-green, #89d185);
+}
+
+.monaco-workbench .hivemindide-agent-pill.kind-root {
+	color: var(--vscode-textLink-foreground);
+	border-color: var(--vscode-textLink-foreground);
+}
+
+.monaco-workbench .hivemindide-agent-edge {
+	width: 2px;
+	height: 16px;
+	background: var(--vscode-panel-border, var(--vscode-widget-border));
+	flex-shrink: 0;
+}
+
+.monaco-workbench .hivemindide-agent-junction {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--vscode-sideBar-background);
+	border: 2px solid var(--vscode-panel-border, var(--vscode-widget-border));
+	flex-shrink: 0;
+}
+
+.monaco-workbench .hivemindide-agent-children {
+	display: flex;
+	align-items: flex-start;
+	justify-content: center;
+	position: relative;
+	gap: 16px;
+	padding-top: 16px;
+}
+
+.monaco-workbench .hivemindide-agent-children::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: var(--hivemindide-bar-left, 50%);
+	right: var(--hivemindide-bar-right, 50%);
+	height: 2px;
+	background: var(--vscode-panel-border, var(--vscode-widget-border));
+}
+
+.monaco-workbench .hivemindide-agent-children > .hivemindide-agent-branch::before {
+	content: "";
+	position: absolute;
+	top: -16px;
+	left: 50%;
+	width: 2px;
+	height: 16px;
+	background: var(--vscode-panel-border, var(--vscode-widget-border));
+	transform: translateX(-50%);
+}
+
+/* ---- Zoom / pan ---------------------------------------------------------------------- */
+
+.monaco-workbench .hivemindide-agent-tree-pane {
+	position: relative;
+}
+
+.monaco-workbench .hivemindide-agent-tree-scroll {
+	cursor: grab;
+}
+
+.monaco-workbench .hivemindide-agent-tree-scroll.panning {
+	cursor: grabbing;
+	user-select: none;
+}
+
+.monaco-workbench .hivemindide-agent-tree-tools {
+	position: absolute;
+	top: 6px;
+	right: 10px;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px;
+	border-radius: 6px;
+	background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background));
+	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+}
+
+.monaco-workbench .hivemindide-agent-tree-tool {
+	min-width: 22px;
+	height: 22px;
+	padding: 0 4px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: none;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--vscode-foreground);
+	font: inherit;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.monaco-workbench .hivemindide-agent-tree-tool:hover {
+	background: var(--vscode-toolbar-hoverBackground);
+}
+
+.monaco-workbench .hivemindide-agent-tree-tool:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+}
+
+/* ---- Stacked siblings: a rail beside a column instead of a wide row ------------------- */
+
+.monaco-workbench .hivemindide-agent-children.stacked {
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 16px 0 0 24px;
+}
+
+/* Bar from the parent's junction (row centre) back to the rail. */
+.monaco-workbench .hivemindide-agent-children.stacked::before {
+	left: 11px;
+	right: 50%;
+}
+
+/* The rail itself, down to the last card's connector. */
+.monaco-workbench .hivemindide-agent-children.stacked::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 11px;
+	width: 2px;
+	height: var(--hivemindide-spine, calc(100% - 24px));
+	background: var(--vscode-panel-border, var(--vscode-widget-border));
+}
+
+.monaco-workbench .hivemindide-agent-children.stacked > .hivemindide-agent-branch::before {
+	top: 26px;
+	left: -13px;
+	width: 13px;
+	height: 2px;
+	transform: none;
+}
+
+/* Model file names (qwen2.5-coder-7b-instruct-q4_k_m…) are longer than a card. */
+.monaco-workbench .hivemindide-agent-model {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

@@ -1,0 +1,330 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------------------------
+ *  Usage notch — see usageNotchWidget.ts.
+ *
+ *  The notch reads as part of the window's frame: it hugs an edge, and concave
+ *  shoulders at both ends curve the edge out into the panel, so it looks grown
+ *  out of the border rather than floating over it.
+ *
+ *  Geometry: the panel is `--notch-thickness` deep with `--notch-corner`
+ *  rounding on its free corners. Each shoulder is a square of side
+ *  thickness − corner, filled outside a quarter circle centred on its far
+ *  corner, so its curve leaves the window edge tangentially and meets the
+ *  panel exactly where the panel's own corner starts: edge and panel join in
+ *  one S. Placement (which edge, how far along) is set inline by the widget.
+ *--------------------------------------------------------------------------------------------*/
+
+.monaco-workbench > .hivemindide-usage-notch {
+	--notch-bg: var(--vscode-hivemind-usageNotch-background);
+	--notch-fg: var(--vscode-hivemind-usageNotch-foreground);
+	--notch-border: var(--vscode-hivemind-usageNotch-border, transparent);
+	/* As wide as the activity bar, so on the left edge it sits inside it. */
+	--notch-thickness: 48px;
+	--notch-corner: 20px;
+	--notch-shoulder: calc(var(--notch-thickness) - var(--notch-corner));
+	--notch-accent: transparent;
+
+	position: absolute;
+	/* Above the parts, below notifications, menus and hovers. */
+	z-index: 40;
+	display: flex;
+	/* Only the pill and the panel take the pointer; the rest of the box is see-through. */
+	pointer-events: none;
+	color: var(--notch-fg);
+	user-select: none;
+	-webkit-user-select: none;
+	touch-action: none;
+}
+
+/* Along the top or bottom the rings sit side by side, each with its figure below. */
+.monaco-workbench > .hivemindide-usage-notch.horizontal {
+	--notch-thickness: 60px;
+	--notch-corner: 22px;
+}
+
+.monaco-workbench > .hivemindide-usage-notch[data-severity="ok"] { --notch-accent: var(--vscode-hivemind-usageNotch-ok); }
+.monaco-workbench > .hivemindide-usage-notch[data-severity="elevated"] { --notch-accent: var(--vscode-hivemind-usageNotch-elevated); }
+.monaco-workbench > .hivemindide-usage-notch[data-severity="high"] { --notch-accent: var(--vscode-hivemind-usageNotch-high); }
+.monaco-workbench > .hivemindide-usage-notch[data-severity="critical"] { --notch-accent: var(--vscode-hivemind-usageNotch-critical); }
+
+.monaco-workbench > .hivemindide-usage-notch .hivemindide-usage-notch-pill,
+.monaco-workbench > .hivemindide-usage-notch .hivemindide-usage-notch-panel {
+	pointer-events: auto;
+	cursor: grab;
+}
+
+.monaco-workbench > .hivemindide-usage-notch.dragging .hivemindide-usage-notch-pill,
+.monaco-workbench > .hivemindide-usage-notch.dragging .hivemindide-usage-notch-panel,
+.monaco-workbench > .hivemindide-usage-notch.dragging .hivemindide-usage-ring {
+	cursor: grabbing;
+}
+
+/* Lifted while it moves: off its edge, the shoulders would curve into nothing. */
+.monaco-workbench > .hivemindide-usage-notch.dragging { opacity: 0.9; }
+.monaco-workbench > .hivemindide-usage-notch.dragging .hivemindide-usage-notch-panel {
+	border-radius: var(--notch-corner);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.monaco-workbench > .hivemindide-usage-notch.dragging .hivemindide-usage-notch-panel::before,
+.monaco-workbench > .hivemindide-usage-notch.dragging .hivemindide-usage-notch-panel::after {
+	display: none;
+}
+
+/* ---- Folded (when "keep open" is off): a pill with a hairline in the worst ring's color ---- */
+
+.hivemindide-usage-notch .hivemindide-usage-notch-pill {
+	position: relative;
+	background: var(--notch-bg);
+	border: 1px solid var(--notch-border);
+	outline-offset: -1px;
+}
+
+.hivemindide-usage-notch:not(.horizontal) .hivemindide-usage-notch-pill { width: 7px; height: 44px; }
+.hivemindide-usage-notch.horizontal .hivemindide-usage-notch-pill { width: 44px; height: 7px; }
+
+.hivemindide-usage-notch.edge-right .hivemindide-usage-notch-pill { border-radius: 7px 0 0 7px; border-right: none; }
+.hivemindide-usage-notch.edge-left .hivemindide-usage-notch-pill { border-radius: 0 7px 7px 0; border-left: none; }
+.hivemindide-usage-notch.edge-top .hivemindide-usage-notch-pill { border-radius: 0 0 7px 7px; border-top: none; }
+.hivemindide-usage-notch.edge-bottom .hivemindide-usage-notch-pill { border-radius: 7px 7px 0 0; border-bottom: none; }
+
+.hivemindide-usage-notch .hivemindide-usage-notch-pill::after {
+	content: '';
+	position: absolute;
+	border-radius: 1px;
+	background: var(--notch-accent);
+}
+
+.hivemindide-usage-notch:not(.horizontal) .hivemindide-usage-notch-pill::after { top: 12px; bottom: 12px; width: 2px; }
+.hivemindide-usage-notch.horizontal .hivemindide-usage-notch-pill::after { left: 12px; right: 12px; height: 2px; }
+.hivemindide-usage-notch.edge-right .hivemindide-usage-notch-pill::after { left: 2px; }
+.hivemindide-usage-notch.edge-left .hivemindide-usage-notch-pill::after { right: 2px; }
+.hivemindide-usage-notch.edge-top .hivemindide-usage-notch-pill::after { bottom: 2px; }
+.hivemindide-usage-notch.edge-bottom .hivemindide-usage-notch-pill::after { top: 2px; }
+
+.hivemindide-usage-notch.expanded .hivemindide-usage-notch-pill { display: none; }
+
+/* ---- Open: the panel of rings ---- */
+
+.hivemindide-usage-notch .hivemindide-usage-notch-panel {
+	position: relative;
+	display: none;
+	box-sizing: border-box;
+	align-items: center;
+	gap: 12px;
+	background: var(--notch-bg);
+	border: 1px solid var(--notch-border);
+}
+
+.hivemindide-usage-notch.expanded .hivemindide-usage-notch-panel { display: flex; }
+
+.hivemindide-usage-notch:not(.horizontal) .hivemindide-usage-notch-panel {
+	flex-direction: column;
+	width: var(--notch-thickness);
+	padding: 12px 0;
+}
+
+.hivemindide-usage-notch.horizontal .hivemindide-usage-notch-panel {
+	flex-direction: row;
+	height: var(--notch-thickness);
+	padding: 0 14px;
+}
+
+.hivemindide-usage-notch.edge-right .hivemindide-usage-notch-panel { border-radius: var(--notch-corner) 0 0 var(--notch-corner); border-right: none; }
+.hivemindide-usage-notch.edge-left .hivemindide-usage-notch-panel { border-radius: 0 var(--notch-corner) var(--notch-corner) 0; border-left: none; }
+.hivemindide-usage-notch.edge-top .hivemindide-usage-notch-panel { border-radius: 0 0 var(--notch-corner) var(--notch-corner); border-top: none; }
+.hivemindide-usage-notch.edge-bottom .hivemindide-usage-notch-panel { border-radius: var(--notch-corner) var(--notch-corner) 0 0; border-bottom: none; }
+
+/* Shoulders: ::before at the start of the edge (above, or to the left), ::after at its end. */
+.hivemindide-usage-notch .hivemindide-usage-notch-panel::before,
+.hivemindide-usage-notch .hivemindide-usage-notch-panel::after {
+	content: '';
+	position: absolute;
+	width: var(--notch-shoulder);
+	height: var(--notch-shoulder);
+	pointer-events: none;
+	--notch-shoulder-cut: transparent calc(var(--notch-shoulder) - 0.5px), var(--notch-bg) var(--notch-shoulder);
+}
+
+.hivemindide-usage-notch:not(.horizontal) .hivemindide-usage-notch-panel::before { bottom: 100%; }
+.hivemindide-usage-notch:not(.horizontal) .hivemindide-usage-notch-panel::after { top: 100%; }
+.hivemindide-usage-notch.horizontal .hivemindide-usage-notch-panel::before { right: 100%; }
+.hivemindide-usage-notch.horizontal .hivemindide-usage-notch-panel::after { left: 100%; }
+
+.hivemindide-usage-notch.edge-right .hivemindide-usage-notch-panel::before { right: 0; background: radial-gradient(circle at 0 0, var(--notch-shoulder-cut)); }
+.hivemindide-usage-notch.edge-right .hivemindide-usage-notch-panel::after { right: 0; background: radial-gradient(circle at 0 100%, var(--notch-shoulder-cut)); }
+.hivemindide-usage-notch.edge-left .hivemindide-usage-notch-panel::before { left: 0; background: radial-gradient(circle at 100% 0, var(--notch-shoulder-cut)); }
+.hivemindide-usage-notch.edge-left .hivemindide-usage-notch-panel::after { left: 0; background: radial-gradient(circle at 100% 100%, var(--notch-shoulder-cut)); }
+.hivemindide-usage-notch.edge-top .hivemindide-usage-notch-panel::before { top: 0; background: radial-gradient(circle at 0 100%, var(--notch-shoulder-cut)); }
+.hivemindide-usage-notch.edge-top .hivemindide-usage-notch-panel::after { top: 0; background: radial-gradient(circle at 100% 100%, var(--notch-shoulder-cut)); }
+.hivemindide-usage-notch.edge-bottom .hivemindide-usage-notch-panel::before { bottom: 0; background: radial-gradient(circle at 0 0, var(--notch-shoulder-cut)); }
+.hivemindide-usage-notch.edge-bottom .hivemindide-usage-notch-panel::after { bottom: 0; background: radial-gradient(circle at 100% 0, var(--notch-shoulder-cut)); }
+
+/* ---- Rings ---- */
+
+.hivemindide-usage-notch .hivemindide-usage-ring {
+	--ring-color: transparent;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+	border-radius: 8px;
+}
+
+.hivemindide-usage-notch .hivemindide-usage-ring:focus-visible {
+	outline: 1px solid var(--vscode-focusBorder);
+	outline-offset: 2px;
+}
+
+.hivemindide-usage-ring.severity-ok,
+.hivemindide-usage-card-bar.severity-ok { --ring-color: var(--vscode-hivemind-usageNotch-ok); }
+.hivemindide-usage-ring.severity-elevated,
+.hivemindide-usage-card-bar.severity-elevated { --ring-color: var(--vscode-hivemind-usageNotch-elevated); }
+.hivemindide-usage-ring.severity-high,
+.hivemindide-usage-card-bar.severity-high { --ring-color: var(--vscode-hivemind-usageNotch-high); }
+.hivemindide-usage-ring.severity-critical,
+.hivemindide-usage-card-bar.severity-critical { --ring-color: var(--vscode-hivemind-usageNotch-critical); }
+
+.hivemindide-usage-notch .hivemindide-usage-ring-dial {
+	position: relative;
+	width: 34px;
+	height: 34px;
+}
+
+.hivemindide-usage-notch .hivemindide-usage-ring-dial svg {
+	display: block;
+	width: 100%;
+	height: 100%;
+	/* Fill clockwise from twelve o'clock. */
+	transform: rotate(-90deg);
+}
+
+.hivemindide-usage-notch .hivemindide-usage-ring-dial circle {
+	fill: none;
+	stroke-width: 4.5;
+}
+
+.hivemindide-usage-notch .hivemindide-usage-ring-dial circle.track { stroke: var(--vscode-hivemind-usageNotch-track); }
+
+.hivemindide-usage-notch .hivemindide-usage-ring-dial circle.value {
+	stroke: var(--ring-color);
+	stroke-linecap: round;
+	transition: stroke-dashoffset 0.4s ease-out;
+}
+
+/* A round cap on an empty ring still paints a dot. */
+.hivemindide-usage-notch .hivemindide-usage-ring.severity-unknown circle.value { stroke: transparent; }
+
+.hivemindide-usage-notch .hivemindide-usage-ring-glyph {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	font-size: 9px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+}
+
+.hivemindide-usage-notch .hivemindide-usage-ring.exhausted .hivemindide-usage-ring-glyph { color: var(--vscode-hivemind-usageNotch-critical); }
+
+.hivemindide-usage-notch .hivemindide-usage-ring-percent {
+	font-size: 11px;
+	line-height: 13px;
+	font-variant-numeric: tabular-nums;
+}
+
+/* ---- Alerting: a slow breath on the pill and the critical rings ---- */
+
+@keyframes hivemind-usage-breathe {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.35; }
+}
+
+.monaco-workbench:not(.monaco-reduce-motion) > .hivemindide-usage-notch.alerting .hivemindide-usage-notch-pill::after,
+.monaco-workbench:not(.monaco-reduce-motion) > .hivemindide-usage-notch .hivemindide-usage-ring.severity-critical circle.value {
+	animation: hivemind-usage-breathe 2.4s ease-in-out infinite;
+}
+
+.monaco-workbench.monaco-reduce-motion > .hivemindide-usage-notch .hivemindide-usage-ring-dial circle.value { transition: none; }
+
+/* ---- Card: the hover beside a ring, in the notch's own colors ---- */
+
+.monaco-hover.workbench-hover.hivemindide-usage-card {
+	background-color: var(--vscode-hivemind-usageNotch-background);
+	color: var(--vscode-hivemind-usageNotch-foreground);
+	border-color: var(--vscode-hivemind-usageNotch-border, var(--vscode-hivemind-usageNotch-background));
+	border-radius: 16px;
+}
+
+.workbench-hover-container:has(.hivemindide-usage-card) .workbench-hover-pointer:after {
+	background-color: var(--vscode-hivemind-usageNotch-background);
+	border-color: var(--vscode-hivemind-usageNotch-border, var(--vscode-hivemind-usageNotch-background));
+}
+
+.hivemindide-usage-card-body {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	width: 260px;
+	padding: 4px 6px;
+	color: var(--vscode-hivemind-usageNotch-foreground);
+}
+
+.hivemindide-usage-card-body .hivemindide-usage-card-title {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 15px;
+}
+
+.hivemindide-usage-card-body .hivemindide-usage-card-glyph {
+	display: grid;
+	place-items: center;
+	width: 22px;
+	height: 22px;
+	border: 1.5px solid currentColor;
+	border-radius: 50%;
+	font-size: 9px;
+	font-weight: 600;
+}
+
+.hivemindide-usage-card-body .hivemindide-usage-card-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 6px;
+	font-size: 12px;
+}
+
+.hivemindide-usage-card-body .hivemindide-usage-card-reset,
+.hivemindide-usage-card-body .hivemindide-usage-card-footer,
+.hivemindide-usage-card-body .hivemindide-usage-card-note {
+	color: color-mix(in srgb, var(--vscode-hivemind-usageNotch-foreground) 60%, transparent);
+}
+
+.hivemindide-usage-card-body .hivemindide-usage-card-bar {
+	height: 8px;
+	border-radius: 4px;
+	overflow: hidden;
+	background: var(--vscode-hivemind-usageNotch-track);
+}
+
+.hivemindide-usage-card-body .hivemindide-usage-card-fill {
+	height: 100%;
+	border-radius: 4px;
+	background: var(--ring-color);
+}
+
+.hivemindide-usage-card-body .hivemindide-usage-card-used {
+	margin-top: 6px;
+	font-size: 12px;
+}
+
+.hivemindide-usage-card-body .hivemindide-usage-card-footer,
+.hivemindide-usage-card-body .hivemindide-usage-card-note {
+	font-size: 11px;
+	line-height: 1.4;
+}
