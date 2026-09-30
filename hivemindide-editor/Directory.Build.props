@@ -1,0 +1,10 @@
+<Project>
+  <!-- Local dev bypass: the installed VS 2022 Build Tools lack the Spectre-mitigated
+       C++ runtime libraries, which triggers MSB8040 when node-gyp builds native
+       addons (@vscode/deviceid, node-pty, @vscode/sqlite3, ...). Spectre mitigation
+       only hardens shipped binaries; disabling it is safe for a from-source dev build.
+       Remove this file (or install the Spectre libs) if you package for distribution. -->
+  <PropertyGroup>
+    <SpectreMitigation>false</SpectreMitigation>
+  </PropertyGroup>
+</Project>
