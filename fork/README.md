@@ -35,32 +35,27 @@ checkout — change the script instead.
 
 ## Where it lives
 
-The fork is **a sibling repository**, not a subdirectory:
+The editor is tracked in this repo, at `hivemindide-editor/`:
 
 ```
-Documents/Coding/
-  HivemindIDE/          ← this repo: services, contract, docs
-  hivemindide-editor/   ← the fork: full vscode history, own remote
+HivemindIDE/
+  hivemindide-editor/   ← the fork: VS Code source plus HivemindIDE changes
+  services/, contract/, fork/, ...
 ```
 
-Nesting it would put a 700MB repo with its own history inside this one. Keeping
-them apart also matches the team split: Owner A owns the editor repo's history
-end to end.
+It carries no upstream VS Code history: it was committed here as a plain source
+tree. Its own `.gitignore` keeps `node_modules`, `out` and `.build` out of this
+repo.
 
 Point scripts at a different location with `HIVEMINDIDE_EDITOR_DIR`.
 
 ## Setting it up
 
 ```bash
-git clone --filter=blob:none https://github.com/microsoft/vscode.git ../hivemindide-editor
-./fork/apply-branding.sh
-cd ../hivemindide-editor && npm install    # ~2 min, the step most likely to fail
+cd hivemindide-editor && npm install    # ~2 min, the step most likely to fail
 npm run compile                         # ~1 min
 cd - && ./fork/run.sh                   # launch it
 ```
-
-`--filter=blob:none` keeps the full commit history — which you need, to merge
-upstream — while fetching file contents lazily. A full clone is several GB more.
 
 Node must match the checkout's `.nvmrc` exactly (24.18.0 as of VS Code 1.139).
 The build breaks in confusing ways on the wrong major version, so `run.sh` puts
@@ -89,11 +84,10 @@ from any real install.
 
 ## Keeping up with upstream
 
-```bash
-git remote add upstream https://github.com/microsoft/vscode.git
-git fetch upstream && git merge upstream/main
-./fork/apply-branding.sh    # idempotent; re-run after every merge
-```
+There is no shared history with microsoft/vscode, so `git merge upstream/main`
+does not work. To take a new upstream release: diff it against the VS Code
+version this tree was cut from, apply that diff to `hivemindide-editor/`, and
+re-run `./fork/apply-branding.sh` (idempotent).
 
 Two rules that decide how much pain this is:
 

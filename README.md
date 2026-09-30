@@ -9,8 +9,8 @@ things built into the editor core rather than bolted on as an extension:
    destroy each other's in-progress work in the same file.
 
 This repo holds the two Go services behind those features and the API contract
-between them. The editor itself is a sibling repository, `../hivemindide-editor` —
-see [fork/README.md](fork/README.md) for why it is not a subdirectory.
+between them. The editor itself lives in `hivemindide-editor/` — see
+[fork/README.md](fork/README.md).
 
 ## What works today
 
