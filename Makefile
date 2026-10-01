@@ -23,7 +23,10 @@ demo:
 	./scripts/demo.sh
 
 page:
-	open demo/index.html
+	@if command -v open >/dev/null 2>&1; then open demo/index.html; \
+	elif command -v xdg-open >/dev/null 2>&1; then xdg-open demo/index.html; \
+	elif command -v cygstart >/dev/null 2>&1; then cygstart demo/index.html; \
+	else echo "Open demo/index.html in a browser"; fi
 
 test:
 	cd services/permission   && go test -race -count=1 ./...

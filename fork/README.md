@@ -54,14 +54,21 @@ Point scripts at a different location with `HIVEMINDIDE_EDITOR_DIR`.
 ```bash
 cd hivemindide-editor && npm install    # ~2 min, the step most likely to fail
 npm run compile                         # ~1 min
-cd - && ./fork/run.sh                   # launch it
+cd - && ./fork/run.sh                   # macOS and Linux
 ```
 
-Node must match the checkout's `.nvmrc` exactly (24.18.0 as of VS Code 1.139).
-The build breaks in confusing ways on the wrong major version, so `run.sh` puts
-the right one on `PATH` for you.
+On Windows, from the repo root: `fork\run.cmd`.
 
-### Use `fork/run.sh`, not `scripts/code.sh` directly
+Do the `npm install` on that machine. `node_modules` and `.build/electron` are
+per operating system; a checkout copied from a Mac will not launch on Windows
+or Linux until they are installed there. The first launch downloads Electron
+for the OS you are on.
+
+Node must match the checkout's `.nvmrc` exactly (24.18.0 as of VS Code 1.139).
+The build breaks in confusing ways on the wrong major version, so the launcher
+puts the right one on `PATH` for you (nvm, fnm, volta, asdf, or mise).
+
+### Use `fork/run.sh` or `fork\run.cmd`, not `scripts/code.sh` directly
 
 If you launch from a terminal *inside* VS Code or Cursor, you inherit that
 editor's `ELECTRON_RUN_AS_NODE=1` and its `VSCODE_*` variables. The fork then
@@ -71,8 +78,9 @@ boots its main process as plain Node and dies with
 SyntaxError: The requested module 'electron' does not provide an export named 'Menu'
 ```
 
-which looks exactly like a broken build and is not one. `run.sh` strips those
-variables. From a plain Terminal.app shell, `./scripts/code.sh` is fine.
+which looks exactly like a broken build and is not one. The launcher strips
+those variables. From a plain terminal, `./scripts/code.sh` (or `scripts\code.bat`
+on Windows) is fine.
 
 ### The dev instance writes to `code-oss-dev`
 
