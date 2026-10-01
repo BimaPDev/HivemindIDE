@@ -24,10 +24,52 @@ between them. The editor itself lives in `hivemindide-editor/` — see
 | Agent spawn tree (author+AI root → sub-agents) | Native sidebar in the editor fork; demo until live `agent.*` frames |
 | Fork integration clients (TypeScript) | Written and typechecked, not yet in a fork |
 | **The editor fork** | Cloned, branded, compiles and runs — see [fork/](fork/) |
+| Provider failover (chat continues on a backup when its model runs out) | In the fork; unit-tested, not yet exercised against live providers |
+| Hivemind shell (agents run in `hivemind-agent`, route chosen at spawn) | Runtime generated and building; editor service verified end to end against it; chat UI not yet exercised in a running editor |
 
-**Coming next (OmniRoute-inspired).** Multi-model routing transparency — which model
-served a turn, fallback chains — sits on the same agent tree nodes. The spawn tree UI
-ships first; the gateway/routing layer is a later service, not a clone of OmniRoute.
+**Provider failover.** When the Chat panel's model runs out of quota, hits a rate
+limit, rejects its key or is down, the same answer can continue on a backup provider
+the user chose, handed the text written so far. The user decides the behaviour with
+`hivemindide.failover.mode`: `ask` (default: pick a backup or stop), `auto`, or
+`off`. Backups are any OpenAI-compatible API, in the user's order
+(`hivemindide.failover.providers`), set up with **HivemindIDE: Add Backup AI
+Provider…**; keys live in secure storage. Each switch is written to the chat's
+`.hivemind` node, so the next AI or teammate sees which model wrote what.
+
+**Hivemind shell.** Every hivemind node can run as an agent in `hivemind-agent`,
+a separate Node runtime HivemindIDE drives over the Agent Client Protocol. The
+route (provider + model) is chosen when the node is spawned: the Chat model
+picker lists every provider model under **Hivemind Shell**, and spawned
+sub-agents each get their own route picker. Nodes record the `route` and the
+`shellSession` that ran them. The runtime is generated from its upstream by
+[fork/rebrand-agent.mjs](fork/rebrand-agent.mjs), which keeps only the ACP
+shell, renames it, and fails if any upstream branding survives outside
+`THIRD_PARTY_NOTICES.md`:
+
+```bash
+git clone <upstream> ../hivemind-agent-upstream     # once; pull to update
+node fork/rebrand-agent.mjs                        # -> ../hivemind-agent
+(cd ../hivemind-agent && corepack pnpm install --frozen-lockfile && corepack pnpm run build)
+node fork/verify-agent-shell.mjs                   # end-to-end check, no network
+```
+
+Then **HivemindIDE: Set Up Hivemind Shell…** and pick `../hivemind-agent`. It
+needs Node 22.19+ installed (the editor's own Electron is not accepted).
+
+**Serviced AI.** A tab beside Local AI in the User sidebar for everything reached
+over the network, with the management ideas of
+[OmniRoute](https://github.com/diegosouzapw/OmniRoute) built natively: API
+services (add, test, key, models, on/off, order = failover order) and the agent
+CLIs found on this machine, each with its health (ready / resting until a time)
+and usage; **combos**, named chains of routes with a strategy (priority,
+round-robin, weighted, random, least-used, last-good, fastest) that appear in
+the model picker and fall through their targets when one fails; the route new
+chats start on; and per-route usage (requests, failures, average latency, last
+error), kept across restarts. OmniRoute's free-tier pooling and client-identity
+masking are deliberately not included.
+
+**Coming next (OmniRoute-inspired).** Showing which model served a turn and its
+fallback chain on the agent tree nodes (`route`, `fallback_of` in the contract).
 
 Phases 1 and 2 as described in the spec are the *editor-side* work. The services
 they call are finished; the editor they call from is not.
@@ -35,8 +77,14 @@ they call are finished; the editor they call from is not.
 ## Run it
 
 ```bash
-./fork/run.sh   # launch the editor from source
+./fork/run.sh          # macOS and Linux
 ```
+
+```bat
+fork\run.cmd           # Windows (Command Prompt or PowerShell)
+```
+
+`./fork/run.sh` and `fork\run.cmd` (which runs `fork\run.ps1`) both start `fork/run.mjs`. It selects the Node version in `hivemindide-editor/.nvmrc` (nvm, fnm, volta, asdf, or mise) and starts `scripts/code.sh` or `scripts/code.bat`. `node_modules` and `.build/electron` are built per operating system, so on each machine run `npm install` in `hivemindide-editor/` once; the first launch downloads Electron for that OS.
 
 ```bash
 make up      # postgres, redis, permissiond, coordinationd
@@ -44,6 +92,8 @@ make seed    # demo repo, two users, two roles
 make demo    # both MVP demos, end to end
 make page    # the status page
 ```
+
+`make` needs Docker and bash. That is macOS, Linux, or Git Bash on Windows. `make page` opens the status page with `open` or `xdg-open`.
 
 Without Docker, point the services at a local Postgres and Redis:
 
