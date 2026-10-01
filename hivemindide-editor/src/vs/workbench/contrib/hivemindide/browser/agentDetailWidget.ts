@@ -75,7 +75,7 @@ export class AgentDetailWidget extends Disposable {
 		if (this.showBack) {
 			const back = append(this.root, $('button.hivemindide-agent-detail-back')) as HTMLButtonElement;
 			back.type = 'button';
-			back.textContent = localize('hivemindide.agentDetail.back', "← Agents");
+			back.textContent = localize('hivemindide.agentDetail.back', "← Maps");
 			this.renderStore.add(addDisposableListener(back, EventType.CLICK, () => this._onDidBack.fire()));
 		}
 

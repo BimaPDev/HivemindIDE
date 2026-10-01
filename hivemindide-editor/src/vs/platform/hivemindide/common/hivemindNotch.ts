@@ -118,6 +118,27 @@ export interface INotchWindowState {
 	/** False when the window no longer wants the notch: the setting is off, or it is closing. */
 	readonly enabled: boolean;
 	readonly rings: readonly INotchRing[];
+	/** `hivemindide.keepAwake.whileAgentsRun`: keep the Mac from sleeping while an agent works. */
+	readonly keepAwakeWhileAgentsRun?: boolean;
+}
+
+/** Keep Awake, chosen in the notch: follow the setting, an hour, until turned off, or never. */
+export type KeepAwakeMode = 'auto' | 'hour' | 'on' | 'off';
+
+/** Why the Mac is being kept awake right now, if it is. */
+export type KeepAwakeReason = 'agents' | 'hour' | 'on';
+
+/** After the last turn ends, how long the Mac stays awake: a follow-up turn is often seconds away. */
+export const KEEP_AWAKE_GRACE_MS = 2 * 60_000;
+export const KEEP_AWAKE_HOUR_MS = 60 * 60_000;
+
+export function keepAwakeReason(mode: KeepAwakeMode, setting: boolean, turnsOpen: boolean, lastTurnEndAt: number, hourUntil: number, now: number): KeepAwakeReason | undefined {
+	switch (mode) {
+		case 'off': return undefined;
+		case 'on': return 'on';
+		case 'hour': if (now < hourUntil) { return 'hour'; } break;
+	}
+	return setting && (turnsOpen || (lastTurnEndAt > 0 && now - lastTurnEndAt < KEEP_AWAKE_GRACE_MS)) ? 'agents' : undefined;
 }
 
 export interface IHivemindNotchService {

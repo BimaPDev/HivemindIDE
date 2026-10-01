@@ -24,6 +24,7 @@ import { IThemeService } from '../../../../platform/theme/common/themeService.js
 import { IViewPaneOptions, ViewPane } from '../../../browser/parts/views/viewPane.js';
 import { IViewDescriptorService } from '../../../common/views.js';
 import { CoordinationClient, StreamEvent } from '../../../services/hivemindide/common/coordinationClient.js';
+import { ITeamService, STREAM_CLOSED_LOST_ACCESS } from './team/teamService.js';
 import { IChatService } from '../../chat/common/chatService/chatService.js';
 import { IAgentDetail, IAgentTree, IAgentTreeNode, isAgentTree, HIVEMINDIDE_AGENT_TREE_VIEW_ID, detailFromHivemind, resolveAgentDetail } from '../common/agentTree.js';
 import { getSection, parseHivemindNode } from '../common/hivemindNode.js';
@@ -64,6 +65,7 @@ export class AgentTreeViewPane extends ViewPane {
 		@IEditorService private readonly editorService: IEditorService,
 		@IChatService private readonly chatService: IChatService,
 		@IDialogService private readonly dialogService: IDialogService,
+		@ITeamService private readonly teamService: ITeamService,
 	) {
 		super(options, keybindingService, contextMenuService, configurationService, contextKeyService, viewDescriptorService, instantiationService, openerService, themeService, hoverService);
 
@@ -76,6 +78,15 @@ export class AgentTreeViewPane extends ViewPane {
 			if (e.affectsConfiguration(HIVEMINDIDE_CONFIG_SECTION)) {
 				this.reconnectStream();
 				this.refresh();
+			}
+		}));
+
+		// After the hub closed the stream for lost access, try again only once
+		// you have signed in (or joined) anew.
+		this._register(this.teamService.onDidChange(() => {
+			if (this.lostAccess && this.teamService.state.kind === 'signedIn') {
+				this.lostAccess = false;
+				this.reconnectStream();
 			}
 		}));
 	}
@@ -205,7 +216,7 @@ export class AgentTreeViewPane extends ViewPane {
 
 		if (!this.configurationService.getValue<boolean>(HivemindIDESettings.AgentTreeEnabled)) {
 			this.currentTree = undefined;
-			this.widget.setConnectionState('empty', localize('hivemindide.agentTree.disabled', "Agents view disabled in settings"));
+			this.widget.setConnectionState('empty', localize('hivemindide.agentTree.disabled', "Maps view disabled in settings"));
 			this.widget.render(undefined);
 			return;
 		}
@@ -322,9 +333,17 @@ export class AgentTreeViewPane extends ViewPane {
 		// every few seconds, and the hivemind graph's status must not flicker.
 		// Live frames replace the graph when they arrive.
 
-		const client = new CoordinationClient(baseUrl);
-		const url = client.streamUrl(repoId);
+		// A repo with a team needs a member's token, which the team service holds.
+		const generation = ++this.streamGeneration;
+		this.teamService.client().then(client => {
+			// A newer reconnect (settings changed, the socket closed) supersedes this one.
+			if (generation === this.streamGeneration) {
+				this.openStream((client ?? new CoordinationClient(baseUrl)).streamUrl(repoId));
+			}
+		});
+	}
 
+	private openStream(url: string): void {
 		let socket: WebSocket;
 		try {
 			socket = new WebSocket(url);
@@ -371,10 +390,20 @@ export class AgentTreeViewPane extends ViewPane {
 			}
 		};
 
-		socket.onclose = () => {
+		socket.onclose = e => {
+			if (e.code === STREAM_CLOSED_LOST_ACCESS) {
+				// Removed from the team, or the repo just got one: the token (or the
+				// lack of one) will not work again, so do not retry with it.
+				this.lostAccess = true;
+				this.teamService.refresh();
+				return;
+			}
 			this.scheduleReconnect();
 		};
 	}
+
+	private streamGeneration = 0;
+	private lostAccess = false;
 
 	private scheduleReconnect(): void {
 		const handle = setTimeout(() => this.reconnectStream(), 3000);

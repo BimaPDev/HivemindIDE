@@ -240,6 +240,14 @@ export class HivemindChatAgent extends Disposable implements IChatAgentImplement
 				progress([{ kind: 'thinking', value: event.text }]);
 			} else if (event.kind === 'tool' && event.title && (event.status === 'pending' || event.status === 'in_progress')) {
 				progress([{ kind: 'progressMessage', content: new MarkdownString(event.title) }]);
+			} else if (event.kind === 'truncated') {
+				// Without this the answer looks like the model misunderstood; it never saw the question.
+				progress([{
+					kind: 'warning',
+					content: new MarkdownString(localize('hivemindChat.truncated',
+						"{0} could not fit this request: it was {1} tokens, but only the last {2} fit in the context Ollama loaded it with, so the start was cut off and this answer may not match what you asked. Raise Ollama's context length (Ollama → Settings → Context length), or use a model with a larger context.",
+						event.model ?? localize('hivemindChat.truncated.model', "The local model"), event.sent.toLocaleString(), event.kept.toLocaleString())),
+				}]);
 			}
 		};
 		while (true) {

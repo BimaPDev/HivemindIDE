@@ -169,9 +169,12 @@ export class UserSidebarViewPane extends ViewPane {
 					this.contentEl,
 					store,
 					localize('hivemindide.user.accountTitle', "Account"),
-					localize('hivemindide.user.accountSubtitle', "Profiles and identity. Sign-in lands here later."),
+					localize('hivemindide.user.accountSubtitleTeam', "Profiles, and the team you share this repo with."),
 					ACCOUNT_ACTIONS,
 				);
+				for (const section of HivemindIDESettingsSections.sectionsFor('account')) {
+					store.add(this.instantiationService.createInstance(section.ctor)).render(this.contentEl, { standalone: true });
+				}
 				break;
 		}
 	}
@@ -200,10 +203,11 @@ export class UserSidebarViewPane extends ViewPane {
 		this.renderBooleanSetting(parent, store, HivemindIDESettings.UsageNotchEnabled, localize('hivemindide.settings.usageNotch.enabled', "Show usage notch"), localize('hivemindide.settings.usageNotch.enabledShort', "A ring per AI assistant on the window edge, filled by how much of its plan limit is used."));
 		this.renderBooleanSetting(parent, store, HivemindIDESettings.UsageNotchKeepOpen, localize('hivemindide.settings.usageNotch.keepOpen', "Keep it open"), localize('hivemindide.settings.usageNotch.keepOpenShort', "Off folds it into a pill until the pointer reaches it."));
 		this.renderBooleanSetting(parent, store, HivemindIDESettings.UsageNotchUseMacbookNotch, localize('hivemindide.settings.usageNotch.macbook', "Use the MacBook notch"), localize('hivemindide.settings.usageNotch.macbookShort', "On a MacBook with a notch, live in the notch itself, visible over any app."));
+		this.renderBooleanSetting(parent, store, HivemindIDESettings.KeepAwakeWhileAgentsRun, localize('hivemindide.settings.keepAwake', "Keep the Mac awake while agents work"), localize('hivemindide.settings.keepAwakeShort', "No sleep mid-run; the display can still sleep."));
 
 		append(parent, $('.hivemindide-user-section-label')).textContent =
-			localize('hivemindide.settings.section.agents', "Agents");
-		this.renderBooleanSetting(parent, store, HivemindIDESettings.AgentTreeEnabled, localize('hivemindide.settings.agents.enabled', "Show Agents sidebar"), localize('hivemindide.agentTree.enabled', "Show the HivemindIDE Agents sidebar with the author+AI spawn tree."));
+			localize('hivemindide.settings.section.agents', "Maps");
+		this.renderBooleanSetting(parent, store, HivemindIDESettings.AgentTreeEnabled, localize('hivemindide.settings.agents.enabled', "Show Maps sidebar"), localize('hivemindide.agentTree.enabled', "Show the HivemindIDE Maps sidebar with the author+AI spawn tree."));
 		this.renderStringSetting(parent, store, HivemindIDESettings.AgentTreeCoordinationUrl, localize('hivemindide.settings.agents.url', "Coordination URL"), localize('hivemindide.agentTree.coordinationUrl', "Base URL of coordinationd."));
 		this.renderStringSetting(parent, store, HivemindIDESettings.AgentTreeRepoId, localize('hivemindide.settings.agents.repoId', "Repo ID"), localize('hivemindide.agentTree.repoId', "Repo ID passed to coordinationd."));
 

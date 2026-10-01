@@ -26,6 +26,7 @@ export const enum HivemindIDESettings {
 	UsageNotchEnabled = 'hivemindide.usageNotch.enabled',
 	UsageNotchKeepOpen = 'hivemindide.usageNotch.keepOpen',
 	UsageNotchUseMacbookNotch = 'hivemindide.usageNotch.useMacbookNotch',
+	KeepAwakeWhileAgentsRun = 'hivemindide.keepAwake.whileAgentsRun',
 	UsageNotchAlertThresholds = 'hivemindide.usageNotch.alertThresholds',
 	UsageNotchMutedProviders = 'hivemindide.usageNotch.mutedProviders',
 	AgentTreeEnabled = 'hivemindide.agentTree.enabled',
@@ -135,6 +136,13 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 			markdownDescription: localize('hivemindide.usageNotch.useMacbookNotch', "On a MacBook with a camera notch, show the usage notch in the notch itself, outside the editor window, with the Hivemind cell, what the agents are doing, and their permission requests. Found automatically; on other Macs and screens the notch stays on the window edge."),
 			tags: ['hivemindide']
 		},
+		[HivemindIDESettings.KeepAwakeWhileAgentsRun]: {
+			type: 'boolean',
+			default: true,
+			scope: ConfigurationScope.APPLICATION,
+			markdownDescription: localize('hivemindide.keepAwake.whileAgentsRun', "Keep the Mac from going to sleep while an agent is working, and for two minutes after, so a long run is not cut off. The display can still sleep. The notch's Mac tab can also keep it awake for an hour or until turned off. Part of the usage notch: turning the notch off turns this off too."),
+			tags: ['hivemindide']
+		},
 		[HivemindIDESettings.UsageNotchAlertThresholds]: {
 			type: 'array',
 			items: { type: 'number', minimum: 1, maximum: 100 },
@@ -155,7 +163,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 			type: 'boolean',
 			default: true,
 			scope: ConfigurationScope.APPLICATION,
-			description: localize('hivemindide.agentTree.enabled', "Show the HivemindIDE Agents sidebar with the author+AI spawn tree."),
+			description: localize('hivemindide.agentTree.enabled', "Show the HivemindIDE Maps sidebar with the author+AI spawn tree."),
 			tags: ['hivemindide']
 		},
 		[HivemindIDESettings.AgentTreeCoordinationUrl]: {
@@ -532,6 +540,9 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration)
 		overrides: {
 			'workbench.colorTheme': 'Hivemind Dynamic',
 			'workbench.iconTheme': 'vscode-modern-icons',
+			// View switcher as a row of icons across the top of the side bar, not a strip down the window's edge.
+			// Accounts and Manage move to the title bar. A user setting still wins.
+			'workbench.activityBar.location': 'top',
 			'telemetry.telemetryLevel': 'off',
 			'telemetry.feedback.enabled': false,
 			'telemetry.enableCrashReporter': false,

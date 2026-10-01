@@ -3,9 +3,12 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/BimaPDev/HivemindIDE/coordination/internal/lease"
 	"github.com/BimaPDev/HivemindIDE/coordination/internal/presence"
+	"github.com/BimaPDev/HivemindIDE/coordination/internal/team"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
 )
@@ -28,6 +31,10 @@ var upgrader = websocket.Upgrader{
 // snapshot, then every event published for the repo.
 func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	repoID := chi.URLParam(r, "repo_id")
+	me, open, ok := s.authorize(w, r, repoID)
+	if !ok {
+		return
+	}
 
 	// Take the snapshot before subscribing would race the other way round: an
 	// event published between the two would be lost. Subscribe first, then
@@ -35,6 +42,15 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	sub, messages := s.presence.Subscribe(ctx, repoID)
 	defer sub.Close()
+
+	// Access may have changed between the check above and the subscription;
+	// from here on, any change arrives as an event.
+	if _, stillOpen, ok := s.authorize(w, r, repoID); !ok {
+		return
+	} else if stillOpen != open {
+		writeErr(w, http.StatusUnauthorized, "unauthorized", "this repo has a team: sign in with a member's token")
+		return
+	}
 
 	snap, err := s.snapshot(r, repoID)
 	if err != nil {
@@ -69,6 +85,9 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	if r.URL.Query().Get("only") == "team" {
+		snap = presenceSnapshot{Sessions: []presence.Session{}, Leases: []lease.Lease{}}
+	}
 	if err := writeEvent(conn, presence.Event{
 		Type: presence.EventSnapshot,
 		At:   time.Now().UTC(),
@@ -76,6 +95,10 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		return
 	}
+
+	// ?only=team: a client that only tracks the team (who joined, left or
+	// changed role) is spared every presence and lease event.
+	onlyTeam := r.URL.Query().Get("only") == "team"
 
 	ticker := time.NewTicker(pingInterval)
 	defer ticker.Stop()
@@ -92,6 +115,15 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 			}
 			// Events arrive already encoded; forward the bytes rather than
 			// decoding and re-encoding them.
+			if reason := lostAccess(msg.Payload, me.UserID, open); reason != "" {
+				// Nothing published after the change reaches this stream: events
+				// arrive in order, and this is the last one it reads.
+				_ = conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(closeLostAccess, reason), time.Now().Add(writeWait))
+				return
+			}
+			if onlyTeam && !strings.Contains(msg.Payload, `"type":"team.`) {
+				continue
+			}
 			_ = conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := conn.WriteMessage(websocket.TextMessage, []byte(msg.Payload)); err != nil {
 				return
@@ -103,6 +135,35 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+}
+
+// closeLostAccess is the close code a stream ends with when its viewer may no
+// longer see the repo; the client should not reconnect with the same token.
+const closeLostAccess = 4001
+
+// lostAccess says why a stream must close on this event, or "" to keep going:
+// its member was removed, or the repo it was watching without a token just got
+// a team. Only team events are decoded; everything else passes straight through.
+func lostAccess(payload, userID string, open bool) string {
+	if !strings.Contains(payload, `"type":"team.`) {
+		return ""
+	}
+	var ev struct {
+		Type string `json:"type"`
+		Data struct {
+			UserID string `json:"user_id"`
+		} `json:"data"`
+	}
+	if json.Unmarshal([]byte(payload), &ev) != nil {
+		return ""
+	}
+	switch {
+	case ev.Type == team.EventTeamCreated && open:
+		return "this repo now has a team: sign in to keep watching"
+	case ev.Type == team.EventMemberRemoved && !open && ev.Data.UserID == userID:
+		return "you were removed from this repo's team"
+	}
+	return ""
 }
 
 func writeEvent(conn *websocket.Conn, ev presence.Event) error {

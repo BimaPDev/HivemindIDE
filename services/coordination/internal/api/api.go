@@ -4,6 +4,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"path"
@@ -13,20 +14,23 @@ import (
 
 	"github.com/BimaPDev/HivemindIDE/coordination/internal/lease"
 	"github.com/BimaPDev/HivemindIDE/coordination/internal/presence"
+	"github.com/BimaPDev/HivemindIDE/coordination/internal/team"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/redis/go-redis/v9"
 )
 
 type Server struct {
-	leases   *lease.Manager
-	presence *presence.Store
-	rdb      *redis.Client
-	log      *slog.Logger
+	leases      *lease.Manager
+	presence    *presence.Store
+	teams       *team.Store
+	rdb         *redis.Client
+	log         *slog.Logger
+	setupSecret string
 }
 
 func New(l *lease.Manager, p *presence.Store, rdb *redis.Client, log *slog.Logger) *Server {
-	return &Server{leases: l, presence: p, rdb: rdb, log: log}
+	return &Server{leases: l, presence: p, teams: team.NewStore(rdb), rdb: rdb, log: log}
 }
 
 func (s *Server) Routes() http.Handler {
@@ -40,6 +44,7 @@ func (s *Server) Routes() http.Handler {
 		r.Post("/presence/heartbeat", s.handleHeartbeat)
 		r.Get("/presence/{repo_id}", s.handlePresence)
 		r.Get("/presence/{repo_id}/stream", s.handleStream)
+		s.teamRoutes(r)
 	})
 	return r
 }
@@ -50,8 +55,8 @@ func (s *Server) Routes() http.Handler {
 func corsForDemoPage(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Hivemind-Setup-Secret")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -77,10 +82,19 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	_ = json.NewEncoder(w).Encode(body)
 }
 
+// maxBody is far more than any request here needs; anything bigger is refused
+// before it is read into memory.
+const maxBody = 64 << 10
+
 func decode(w http.ResponseWriter, r *http.Request, dst any) bool {
-	dec := json.NewDecoder(r.Body)
+	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxBody))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
+		var tooBig *http.MaxBytesError
+		if errors.As(err, &tooBig) {
+			writeErr(w, http.StatusRequestEntityTooLarge, "body_too_large", "request bodies are limited to 64 KB")
+			return false
+		}
 		writeErr(w, http.StatusBadRequest, "invalid_body", err.Error())
 		return false
 	}
@@ -142,6 +156,9 @@ func (s *Server) handleLeaseRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.RepoID == "" || req.SessionID == "" {
 		writeErr(w, http.StatusBadRequest, "missing_field", "repo_id and session_id are required")
+		return
+	}
+	if !s.authorizeSession(w, r, req.RepoID, req.SessionID) {
 		return
 	}
 	norm, ok := normalizePath(req.Path)
@@ -210,6 +227,9 @@ func (s *Server) handleLeaseRelease(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "missing_field", "repo_id and session_id are required")
 		return
 	}
+	if !s.authorizeSession(w, r, req.RepoID, req.SessionID) {
+		return
+	}
 	norm, ok := normalizePath(req.Path)
 	if !ok {
 		writeErr(w, http.StatusBadRequest, "invalid_path", "path must be repo-relative")
@@ -256,6 +276,15 @@ func (s *Server) handleHeartbeat(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "missing_field", "repo_id and session_id are required")
 		return
 	}
+	// On a repo with a team, who the session belongs to comes from the token, not the body.
+	if me, open, ok := s.authorize(w, r, req.RepoID); !ok {
+		return
+	} else if !open {
+		if !s.claimSession(w, r, req.RepoID, req.SessionID, me) {
+			return
+		}
+		req.UserID, req.DisplayName = me.UserID, me.DisplayName
+	}
 	kind := presence.Kind(req.Kind)
 	if !kind.Valid() {
 		writeErr(w, http.StatusBadRequest, "invalid_kind", `kind must be "human" or "agent"`)
@@ -292,6 +321,9 @@ type presenceSnapshot struct {
 }
 
 func (s *Server) handlePresence(w http.ResponseWriter, r *http.Request) {
+	if _, _, ok := s.authorize(w, r, chi.URLParam(r, "repo_id")); !ok {
+		return
+	}
 	snap, err := s.snapshot(r, chi.URLParam(r, "repo_id"))
 	if err != nil {
 		s.log.Error("presence snapshot failed", "err", err)

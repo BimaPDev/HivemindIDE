@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { formatBytes, parseIoregGpu, parseNvidiaSmi, parseOllamaPs } from '../../common/gpuStats.js';
+import { formatBytes, parseIoregGpu, parseNvidiaSmi, parseOllamaPs, parseOllamaTruncations } from '../../common/gpuStats.js';
 
 suite('HivemindIDE GPU stats', () => {
 
@@ -44,6 +44,18 @@ suite('HivemindIDE GPU stats', () => {
 			{ model: 'llama3:70b', bytes: 40_000_000_000, gpuPercent: 25, contextLength: undefined },
 		]);
 		assert.deepStrictEqual([parseOllamaPs('not json'), parseOllamaPs('{}')], [[], []]);
+	});
+
+	test('Ollama: prompts it cut to fit, from its log', () => {
+		const log = [
+			'time=2026-09-30T02:30:01.000-04:00 level=WARN source=llama_server.go:314 msg="truncating input prompt" limit=2050 prompt=5000 keep=4 new=2050',
+			'time=2026-09-30T02:32:17.384-04:00 level=INFO source=server.go:100 msg="loaded"',
+			'time=2026-09-30T02:32:17.384-04:00 level=WARN source=llama_server.go:314 msg="truncating input prompt" limit=2050 prompt=6793 keep=4 new=2050',
+			'not a log line',
+		].join('\n');
+		// Only cuts since the turn started count.
+		assert.deepStrictEqual(parseOllamaTruncations(log, Date.parse('2026-09-30T02:31:00-04:00')), [{ at: Date.parse('2026-09-30T02:32:17.384-04:00'), sent: 6793, kept: 2050 }]);
+		assert.deepStrictEqual(parseOllamaTruncations('', 0), []);
 	});
 
 	test('sizes read like the rest of macOS', () => {

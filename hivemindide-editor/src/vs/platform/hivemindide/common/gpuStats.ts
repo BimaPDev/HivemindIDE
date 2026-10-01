@@ -90,6 +90,36 @@ export function parseOllamaPs(output: string): IModelOffload[] {
 	}
 }
 
+/** A prompt Ollama cut to fit the model's loaded context. */
+export interface IOllamaTruncation {
+	readonly at: number;
+	/** Tokens the prompt had. */
+	readonly sent: number;
+	/** Tokens Ollama kept: the start of the prompt is lost. */
+	readonly kept: number;
+}
+
+/**
+ * Ollama's server log → the prompts it cut since `sinceMs`. Ollama says so only
+ * in its log (`msg="truncating input prompt" limit=2050 prompt=6793 keep=4 new=2050`);
+ * the API answers as if nothing happened.
+ */
+export function parseOllamaTruncations(log: string, sinceMs: number): IOllamaTruncation[] {
+	const found: IOllamaTruncation[] = [];
+	for (const line of log.split('\n')) {
+		if (!line.includes('truncating input prompt')) {
+			continue;
+		}
+		const at = Date.parse(/\btime=(\S+)/.exec(line)?.[1] ?? '');
+		const sent = /\bprompt=(\d+)/.exec(line)?.[1];
+		const kept = /\bnew=(\d+)/.exec(line)?.[1];
+		if (!isNaN(at) && at >= sinceMs && sent && kept) {
+			found.push({ at, sent: Number(sent), kept: Number(kept) });
+		}
+	}
+	return found;
+}
+
 /** 3898310656 → "3.9 GB". */
 export function formatBytes(bytes: number): string {
 	return bytes >= 1e9 ? `${(bytes / 1e9).toFixed(1)} GB` : `${Math.round(bytes / 1e6)} MB`;

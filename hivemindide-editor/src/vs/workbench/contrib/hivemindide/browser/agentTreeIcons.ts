@@ -1,5 +1,5 @@
 /*---------------------------------------------------------------------------------------------
- *  Icons for the HivemindIDE Agents sidebar.
+ *  Icons for the HivemindIDE Maps sidebar.
  *--------------------------------------------------------------------------------------------*/
 
 import { Codicon } from '../../../../base/common/codicons.js';
@@ -8,8 +8,8 @@ import { registerIcon } from '../../../../platform/theme/common/iconRegistry.js'
 
 export const hivemindideViewIcon = registerIcon(
 	'hivemindide-view-icon',
-	Codicon.organization,
-	localize('hivemindideViewIcon', 'View icon of the HivemindIDE Agents sidebar.')
+	Codicon.map,
+	localize('hivemindideViewIcon', 'View icon of the HivemindIDE Maps sidebar.')
 );
 
 export const hivemindideAgentTreeRefreshIcon = registerIcon(

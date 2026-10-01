@@ -62,6 +62,13 @@ func sessionKey(repoID, sessionID string) string {
 	return fmt.Sprintf("hivemindide:{%s}:presence:%s", repoID, sessionID)
 }
 
+// indexKey is the set of a repo's session ids, so listing one repo reads only
+// its own keys instead of scanning everyone's. Ids whose session has expired are
+// dropped from it the next time the repo is listed.
+func indexKey(repoID string) string {
+	return fmt.Sprintf("hivemindide:{%s}:presenceindex", repoID)
+}
+
 func channel(repoID string) string {
 	return fmt.Sprintf("hivemindide:{%s}:events", repoID)
 }
@@ -73,7 +80,10 @@ func (s *Store) Heartbeat(ctx context.Context, repoID string, sess Session) erro
 	if err != nil {
 		return fmt.Errorf("marshal session: %w", err)
 	}
-	if err := s.rdb.Set(ctx, sessionKey(repoID, sess.SessionID), body, TTL).Err(); err != nil {
+	pipe := s.rdb.TxPipeline()
+	pipe.Set(ctx, sessionKey(repoID, sess.SessionID), body, TTL)
+	pipe.SAdd(ctx, indexKey(repoID), sess.SessionID)
+	if _, err := pipe.Exec(ctx); err != nil {
 		return fmt.Errorf("write presence: %w", err)
 	}
 	return s.Publish(ctx, repoID, Event{
@@ -85,36 +95,41 @@ func (s *Store) Heartbeat(ctx context.Context, repoID string, sess Session) erro
 
 // List returns every session currently visible in a repo.
 func (s *Store) List(ctx context.Context, repoID string) ([]Session, error) {
-	prefix := fmt.Sprintf("hivemindide:{%s}:presence:", repoID)
-	var (
-		cursor uint64
-		out    = []Session{}
-	)
-	for {
-		keys, next, err := s.rdb.Scan(ctx, cursor, prefix+"*", 100).Result()
-		if err != nil {
-			return nil, fmt.Errorf("scan presence: %w", err)
-		}
-		for _, k := range keys {
-			body, err := s.rdb.Get(ctx, k).Bytes()
-			if errors.Is(err, redis.Nil) {
-				continue // expired between SCAN and GET
-			}
-			if err != nil {
-				return nil, fmt.Errorf("read presence %s: %w", k, err)
-			}
-			var sess Session
-			if err := json.Unmarshal(body, &sess); err != nil {
-				// A malformed entry should not blank out the whole panel.
-				continue
-			}
-			out = append(out, sess)
-		}
-		if next == 0 {
-			return out, nil
-		}
-		cursor = next
+	ids, err := s.rdb.SMembers(ctx, indexKey(repoID)).Result()
+	if err != nil {
+		return nil, fmt.Errorf("list presence: %w", err)
 	}
+	out := []Session{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	keys := make([]string, len(ids))
+	for i, id := range ids {
+		keys[i] = sessionKey(repoID, id)
+	}
+	// One round trip; the keys share the repo's hash tag, so this works on a cluster too.
+	bodies, err := s.rdb.MGet(ctx, keys...).Result()
+	if err != nil {
+		return nil, fmt.Errorf("read presence: %w", err)
+	}
+	gone := []any{}
+	for i, body := range bodies {
+		str, ok := body.(string)
+		if !ok {
+			gone = append(gone, ids[i]) // expired
+			continue
+		}
+		var sess Session
+		if err := json.Unmarshal([]byte(str), &sess); err != nil {
+			// A malformed entry should not blank out the whole panel.
+			continue
+		}
+		out = append(out, sess)
+	}
+	if len(gone) > 0 {
+		s.rdb.SRem(ctx, indexKey(repoID), gone...)
+	}
+	return out, nil
 }
 
 // Get returns one session, or ok=false if it has expired.

@@ -25,6 +25,15 @@ import './hivemindideSettings.contribution.js';
 // Hivemind: shared AI memory for each project in .hivemind/.
 import './hivemind/hivemind.contribution.js';
 
+// Chat History: a chip beside "Local" under the chat input to reopen earlier chats.
+import './chatHistory/chatHistory.contribution.js';
+
+// Agent panel: the chat as the first bottom-panel tab, beside Terminal and Problems.
+import './agentPanel/agentPanel.contribution.js';
+
+// Team: who shares this repo's coordination hub; only owners and admins can invite.
+import './team/team.contribution.js';
+
 // User sidebar: nested icon rail + content panel (inside the sidebar).
 import './userSidebar.contribution.js';
 

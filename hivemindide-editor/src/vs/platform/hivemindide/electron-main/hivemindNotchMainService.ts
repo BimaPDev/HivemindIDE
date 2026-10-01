@@ -17,8 +17,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { execFile } from 'child_process';
-import { totalmem } from 'os';
-import { BrowserWindow, Display, screen } from 'electron';
+import { cpus, totalmem } from 'os';
+import { BrowserWindow, Display, powerMonitor, powerSaveBlocker, screen } from 'electron';
 import { RunOnceScheduler } from '../../../base/common/async.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { Emitter } from '../../../base/common/event.js';
@@ -29,8 +29,9 @@ import { ILogService } from '../../log/common/log.js';
 import { FocusMode } from '../../native/common/native.js';
 import { INativeRunActionInWindowRequest } from '../../window/common/window.js';
 import { IWindowsMainService } from '../../windows/electron-main/windows.js';
-import { applyNotchStep, clampText, findNotch, IHivemindNotchService, INotchRect, INotchRing, INotchStep, INotchSteps, INotchWindowState, NOTCH_DONE_MS, NOTCH_PROBE_SCRIPT, NOTCH_STUCK_MS, NotchPhase, notchPhase, parseNotchProbe } from '../common/hivemindNotch.js';
+import { applyNotchStep, clampText, findNotch, IHivemindNotchService, INotchRect, INotchRing, INotchStep, INotchSteps, INotchWindowState, KEEP_AWAKE_GRACE_MS, KEEP_AWAKE_HOUR_MS, KeepAwakeMode, KeepAwakeReason, keepAwakeReason, NOTCH_DONE_MS, NOTCH_PROBE_SCRIPT, NOTCH_STUCK_MS, NotchPhase, notchPhase, parseNotchProbe } from '../common/hivemindNotch.js';
 import { formatBytes, IGpuStats, IModelOffload, NVIDIA_SMI_ARGS, parseIoregGpu, parseNvidiaSmi, parseOllamaPs } from '../common/gpuStats.js';
+import { cpuPercent, IListeningPort, isSystemListener, ISystemStats, parseLsofListening, parsePmsetBattery, parseVmStat } from '../common/systemStats.js';
 import { HivemindShellEvent, IHivemindShellPermissionRequest, IHivemindShellService } from '../common/hivemindShell.js';
 import { cliAgentSpec } from './cliAgents.js';
 import { NOTCH_MESSAGE_PREFIX, notchPageUrl } from './notchPage.js';
@@ -42,6 +43,8 @@ const WINDOW_HEIGHT = 420;
 const CURSOR_POLL_MS = 33;
 /** GPU counters and Ollama's model placement, while a local model is shown. */
 const GPU_POLL_MS = 1500;
+/** CPU, memory, battery, heat and ports, while the Mac tab is open. */
+const SYSTEM_POLL_MS = 2000;
 /** Changes to a display that can move or resize its notch; work-area changes (menu bar, Dock) cannot. */
 const NOTCH_METRICS = ['bounds', 'scaleFactor', 'rotation'];
 
@@ -54,6 +57,9 @@ interface IPageState {
 	readonly steps: readonly INotchStep[];
 	readonly rings: readonly INotchRing[];
 	readonly permission?: { readonly id: string; readonly heading: string; readonly command: string; readonly options: readonly { readonly optionId: string; readonly name: string; readonly kind: string }[] };
+	readonly keepAwake: { readonly mode: KeepAwakeMode; readonly reason?: KeepAwakeReason; readonly status: string };
+	readonly system?: ISystemStats;
+	readonly ports?: readonly (IListeningPort & { readonly own: boolean })[];
 	readonly labels: Record<string, string>;
 }
 
@@ -62,7 +68,12 @@ type PageMessage =
 	| { readonly type: 'hover'; readonly inside: boolean }
 	| { readonly type: 'focus' }
 	| { readonly type: 'settings' }
+	| { readonly type: 'tab'; readonly tab: string }
+	| { readonly type: 'keepAwake'; readonly mode: KeepAwakeMode }
+	| { readonly type: 'stopPort'; readonly pid: number; readonly port: number }
 	| { readonly type: 'permission'; readonly id: string; readonly optionId: string };
+
+const KEEP_AWAKE_MODES: readonly KeepAwakeMode[] = ['auto', 'hour', 'on', 'off'];
 
 export class HivemindNotchMainService extends Disposable implements IHivemindNotchService {
 
@@ -95,12 +106,30 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 	private gpuKey = '';
 	private gpuReading = false;
 	private readonly context = new Map<string, { readonly used: number; readonly size: number }>();
+	/** Sessions whose last turn's prompt the local model's server cut to fit. */
+	private readonly truncated = new Map<string, { readonly sent: number; readonly kept: number }>();
 	private current: string | undefined;
 	/** Re-pushes when a run goes quiet (working → done) and when done turns to idle. */
 	private readonly phaseTimer = this._register(new RunOnceScheduler(() => this.onPhaseTimer(), NOTCH_DONE_MS));
 	private readonly permissions: IHivemindShellPermissionRequest[] = [];
 	private lastPushedPhase: NotchPhase | undefined;
 	private lastCursor = '';
+
+	/** Keep Awake: the setting (from the windows), the notch's own mode, and the blocker while it holds. */
+	private keepAwakeSetting = true;
+	private keepAwakeMode: KeepAwakeMode = 'auto';
+	private keepAwakeHourUntil = 0;
+	private lastTurnEndAt = 0;
+	private blocker: number | undefined;
+	private readonly keepAwakeTimer = this._register(new RunOnceScheduler(() => this.reconcileKeepAwake(), KEEP_AWAKE_GRACE_MS));
+
+	/** The Mac tab: read only while it is open. */
+	private macTab = false;
+	private system: ISystemStats | undefined;
+	private ports: (IListeningPort & { own: boolean })[] | undefined;
+	private systemKey = '';
+	private systemReading = false;
+	private cpuBefore = cpus();
 
 	constructor(
 		@IHivemindShellService private readonly shellService: IHivemindShellService,
@@ -127,6 +156,7 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 				this.reconcile();
 			}
 		}));
+		this._register(toDisposable(() => this.releaseBlocker()));
 	}
 
 	async isActive(): Promise<boolean> {
@@ -141,6 +171,9 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 		if (state.enabled) {
 			this.rings = state.rings;
 		}
+		// Any window that wants it keeps the Mac awake while agents work; a window that turned the notch off entirely says false.
+		this.keepAwakeSetting = [...this.windows.values()].some(s => s.keepAwakeWhileAgentsRun !== false);
+		this.reconcileKeepAwake();
 		if (this.wanted() && !this.detected) {
 			await this.detect();
 		}
@@ -259,6 +292,9 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 		// Only while it shows, and only reads anything while a local model is the one shown.
 		const gpu = setInterval(() => this.refreshGpu(), GPU_POLL_MS);
 		store.add(toDisposable(() => clearInterval(gpu)));
+		// Only while it shows, and only reads anything while the Mac tab is open.
+		const system = setInterval(() => this.refreshSystem(), SYSTEM_POLL_MS);
+		store.add(toDisposable(() => { clearInterval(system); this.macTab = false; }));
 
 		this.session.value = store;
 		this.position();
@@ -281,14 +317,23 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 		if (e.kind === 'end') {
 			if (this.openTurns.delete(e.sessionId)) {
 				this.lastEventAt = Date.now();
+				this.lastTurnEndAt = this.lastEventAt;
 				this.phaseTimer.schedule(NOTCH_DONE_MS);
+				this.reconcileKeepAwake();
 				this.push();
 			}
 			return;
 		}
+		if (e.kind === 'truncated') {
+			this.truncated.set(e.sessionId, { sent: e.sent, kept: e.kept });
+			this.push();
+			return;
+		}
 		if (e.kind === 'start') {
+			this.truncated.delete(e.sessionId);
 			this.routes.set(e.sessionId, { provider: e.provider, model: e.model, local: e.local, endpoint: e.endpoint });
 			this.openTurns.add(e.sessionId);
+			this.reconcileKeepAwake();
 			this.show(e.sessionId);
 			this.lastEventAt = Date.now();
 			this.phaseTimer.schedule(NOTCH_STUCK_MS);
@@ -308,7 +353,10 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 			return;
 		}
 		const wasWorking = this.phase() === 'working';
-		this.openTurns.add(e.sessionId);
+		if (!this.openTurns.has(e.sessionId)) {
+			this.openTurns.add(e.sessionId);
+			this.reconcileKeepAwake();
+		}
 		this.show(e.sessionId);
 		this.lastEventAt = Date.now();
 		if (e.kind === 'tool') {
@@ -322,6 +370,109 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 		if (e.kind === 'tool' || !wasWorking) {
 			this.push();
 		}
+	}
+
+	// ---- Keep Awake ------------------------------------------------------------------
+
+	/**
+	 * Holds a power-save blocker exactly while there is a reason to: an agent at
+	 * work (and a couple of minutes after), an hour asked for, or "on". Only
+	 * system sleep is held off; the display still sleeps, as with `caffeinate -i`.
+	 */
+	private reconcileKeepAwake(): void {
+		const now = Date.now();
+		const reason = keepAwakeReason(this.keepAwakeMode, this.keepAwakeSetting, this.openTurns.size > 0, this.lastTurnEndAt, this.keepAwakeHourUntil, now);
+		if (reason && this.blocker === undefined) {
+			this.blocker = powerSaveBlocker.start('prevent-app-suspension');
+			this.logService.info(`[hivemind notch] keeping the Mac awake (${reason})`);
+		} else if (!reason) {
+			this.releaseBlocker();
+		}
+		// Wake up again when the reason can lapse: the hour ends, or the grace after the last turn does.
+		const next = [
+			this.keepAwakeMode === 'hour' ? this.keepAwakeHourUntil - now : undefined,
+			reason === 'agents' && this.openTurns.size === 0 ? this.lastTurnEndAt + KEEP_AWAKE_GRACE_MS - now : undefined,
+		].filter((ms): ms is number => ms !== undefined && ms > 0);
+		if (next.length) {
+			this.keepAwakeTimer.schedule(Math.min(...next) + 50);
+		} else {
+			this.keepAwakeTimer.cancel();
+		}
+		if (this.keepAwakeMode === 'hour' && now >= this.keepAwakeHourUntil) {
+			this.keepAwakeMode = 'auto';
+		}
+		this.push();
+	}
+
+	private releaseBlocker(): void {
+		if (this.blocker !== undefined) {
+			powerSaveBlocker.stop(this.blocker);
+			this.blocker = undefined;
+			this.logService.info('[hivemind notch] letting the Mac sleep again');
+		}
+	}
+
+	private keepAwakeState(): IPageState['keepAwake'] {
+		const now = Date.now();
+		const reason = keepAwakeReason(this.keepAwakeMode, this.keepAwakeSetting, this.openTurns.size > 0, this.lastTurnEndAt, this.keepAwakeHourUntil, now);
+		const status = reason === 'on' ? localize('notch.awake.on', "Awake until you turn it off")
+			: reason === 'hour' ? localize('notch.awake.hour', "Awake for {0} more min", Math.max(1, Math.ceil((this.keepAwakeHourUntil - now) / 60_000)))
+				: reason === 'agents' ? (this.openTurns.size ? localize('notch.awake.agents', "Awake while agents work") : localize('notch.awake.grace', "Awake a moment after the last run"))
+					: this.keepAwakeMode === 'off' ? localize('notch.awake.off', "Off: the Mac may sleep")
+						: this.keepAwakeSetting ? localize('notch.awake.ready', "Stays awake when an agent runs") : localize('notch.awake.none', "Off");
+		return { mode: this.keepAwakeMode, reason, status };
+	}
+
+	// ---- The Mac tab: CPU, memory, battery, heat and ports ---------------------------------------
+
+	private async refreshSystem(): Promise<void> {
+		if (!this.macTab || this.systemReading) {
+			return;
+		}
+		this.systemReading = true;
+		try {
+			const now = cpus();
+			const cpu = cpuPercent(this.cpuBefore, now);
+			this.cpuBefore = now;
+			const [vm, batt, lsof] = await Promise.all([
+				run('/usr/bin/vm_stat', []),
+				run('/usr/bin/pmset', ['-g', 'batt']),
+				run('/usr/sbin/lsof', ['-nP', '-iTCP', '-sTCP:LISTEN', '-Fpcn']),
+			]);
+			this.system = {
+				cpu,
+				memoryUsed: vm ? parseVmStat(vm) : undefined,
+				memoryTotal: totalmem(),
+				battery: batt ? parsePmsetBattery(batt) : undefined,
+				thermal: powerMonitor.getCurrentThermalState(),
+			};
+			// HivemindIDE's own processes (the editor, its helpers) are listed but cannot be stopped from here.
+			this.ports = lsof === undefined ? undefined : parseLsofListening(lsof)
+				.filter(p => !isSystemListener(p.command))
+				.map(p => ({ ...p, command: clampText(p.command, 40), own: p.pid === process.pid || /^HivemindIDE/.test(p.command) }));
+			const key = JSON.stringify([Math.round(cpu ?? -1), this.system.memoryUsed && Math.round(this.system.memoryUsed / 1e8), this.system.battery, this.system.thermal, this.ports]);
+			if (key !== this.systemKey) {
+				this.systemKey = key;
+				this.push();
+			}
+		} finally {
+			this.systemReading = false;
+		}
+	}
+
+	private stopPort(pid: number, port: number): void {
+		const listed = this.ports?.find(p => p.pid === pid && p.port === port);
+		// Only a process the notch just listed as listening, and never HivemindIDE itself.
+		if (!listed || listed.own || !Number.isInteger(pid) || pid <= 1) {
+			return;
+		}
+		try {
+			process.kill(pid, 'SIGTERM');
+			this.logService.info(`[hivemind notch] stopped ${listed.command} (pid ${pid}) listening on :${port}`);
+		} catch (err) {
+			this.logService.warn(`[hivemind notch] could not stop pid ${pid}`, err instanceof Error ? err.message : String(err));
+		}
+		setTimeout(() => { this.systemKey = ''; this.refreshSystem(); }, 600);
 	}
 
 	/** The session the agent card follows: the one that last started or spoke. */
@@ -366,15 +517,25 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 				reset: localize('notch.modelSize', "{0} model", formatBytes(offload.bytes)),
 			});
 		}
+		const cut = this.current ? this.truncated.get(this.current) : undefined;
+		if (cut) {
+			// The model only saw the end of the prompt: say so where the context ring is.
+			windows.unshift({
+				label: localize('notch.promptCut', "Prompt cut off"), percent: 100, severity: 'critical',
+				reset: localize('notch.promptCutTokens', "{0} of {1} tokens kept", formatTokens(cut.kept), formatTokens(cut.sent)),
+			});
+		}
 		return {
 			id: 'local',
 			label: route.model,
 			glyph: 'LM',
-			percent,
-			severity,
-			detail: offload
-				? localize('notch.onThisMacGpu', "On this Mac · {0}% GPU", Math.round(offload.gpuPercent))
-				: localize('notch.onThisMac', "On this Mac"),
+			percent: cut ? 100 : percent,
+			severity: cut ? 'critical' : severity,
+			detail: cut
+				? localize('notch.promptCutShort', "Prompt cut off")
+				: offload
+					? localize('notch.onThisMacGpu', "On this Mac · {0}% GPU", Math.round(offload.gpuPercent))
+					: localize('notch.onThisMac', "On this Mac"),
 			windows,
 		};
 	}
@@ -459,6 +620,9 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 				command: clampText(permission.title, 600),
 				options: [...permission.options].sort((a, b) => PERMISSION_ORDER.indexOf(a.kind) - PERMISSION_ORDER.indexOf(b.kind)).slice(0, 3).map(o => ({ ...o, name: clampText(o.name, 24) })),
 			},
+			keepAwake: this.keepAwakeState(),
+			system: this.macTab ? this.system : undefined,
+			ports: this.macTab ? this.ports : undefined,
 			labels: {
 				hivemind: localize('notch.hivemind', "Hivemind"),
 				home: localize('notch.home', "Home"),
@@ -472,6 +636,29 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 				noRun: localize('notch.noRun', "No agent has run yet. Start one from the chat."),
 				noUsage: localize('notch.noUsage', "No usage readings yet."),
 				limitReached: localize('notch.limitReached', "{0} limit reached"),
+				mac: localize('notch.macTab', "Mac"),
+				keepAwake: localize('notch.keepAwake', "Keep awake"),
+				modeAuto: localize('notch.mode.auto', "Agents"),
+				modeHour: localize('notch.mode.hour', "1 hour"),
+				modeOn: localize('notch.mode.on', "On"),
+				modeOff: localize('notch.mode.off', "Off"),
+				cpu: localize('notch.cpu', "CPU"),
+				memory: localize('notch.memory', "Memory"),
+				battery: localize('notch.battery', "Battery"),
+				charging: localize('notch.charging', "Charging"),
+				onPower: localize('notch.onPower', "On power"),
+				left: localize('notch.left', "{0} left"),
+				heat: localize('notch.heat', "Heat"),
+				thermal_nominal: localize('notch.thermal.nominal', "Cool"),
+				thermal_fair: localize('notch.thermal.fair', "Warm"),
+				thermal_serious: localize('notch.thermal.serious', "Hot, slowing down"),
+				thermal_critical: localize('notch.thermal.critical', "Too hot"),
+				thermal_unknown: localize('notch.thermal.unknown', "Unknown"),
+				ports: localize('notch.ports', "Listening ports"),
+				noPorts: localize('notch.noPorts', "Nothing is listening."),
+				stop: localize('notch.stop', "Stop"),
+				confirmStop: localize('notch.confirmStop', "Stop?"),
+				ownProcess: localize('notch.ownProcess', "HivemindIDE"),
 				used: localize('notch.used', "{0} used"),
 				more: localize('notch.more', "+{0} more"),
 			},
@@ -520,6 +707,25 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 				break;
 			case 'focus':
 				this.windowsMainService.getLastActiveWindow()?.focus({ mode: FocusMode.Force });
+				break;
+			case 'tab':
+				this.macTab = message.tab === 'mac';
+				if (this.macTab) {
+					this.systemKey = '';
+					this.refreshSystem();
+				}
+				break;
+			case 'keepAwake':
+				if (KEEP_AWAKE_MODES.includes(message.mode)) {
+					this.keepAwakeMode = message.mode;
+					this.keepAwakeHourUntil = message.mode === 'hour' ? Date.now() + KEEP_AWAKE_HOUR_MS : 0;
+					this.reconcileKeepAwake();
+				}
+				break;
+			case 'stopPort':
+				if (typeof message.pid === 'number' && typeof message.port === 'number') {
+					this.stopPort(message.pid, message.port);
+				}
 				break;
 			case 'settings': {
 				const target = this.windowsMainService.getLastActiveWindow();

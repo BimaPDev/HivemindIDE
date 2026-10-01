@@ -23,7 +23,7 @@ export interface IHivemindIDESettingsSection extends IDisposable {
 }
 
 /** The User sidebar tab a section appears on. */
-export type HivemindIDESettingsSectionTab = 'localAI' | 'servicedAI';
+export type HivemindIDESettingsSectionTab = 'localAI' | 'servicedAI' | 'account';
 
 export interface IHivemindIDESettingsSectionDescriptor {
 	readonly id: string;

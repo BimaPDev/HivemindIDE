@@ -39,7 +39,7 @@ export class MacbookNotchBridge extends Disposable {
 		this._register(this.notchService.onDidChangeActive(active => this.widget.setSuppressed(active)));
 		this._register(this.model.onDidChange(() => this.send.schedule()));
 		this._register(this.configurationService.onDidChangeConfiguration(e => {
-			if (e.affectsConfiguration(HivemindIDESettings.UsageNotchUseMacbookNotch)) {
+			if (e.affectsConfiguration(HivemindIDESettings.UsageNotchUseMacbookNotch) || e.affectsConfiguration(HivemindIDESettings.KeepAwakeWhileAgentsRun)) {
 				this.update();
 			}
 		}));
@@ -57,12 +57,16 @@ export class MacbookNotchBridge extends Disposable {
 
 	private update(): void {
 		const now = Date.now();
-		this.notchService.update(mainWindow.vscodeWindowId, { enabled: this.enabled, rings: this.enabled ? this.model.providers.map(p => toRing(p, now)) : [] });
+		this.notchService.update(mainWindow.vscodeWindowId, {
+			enabled: this.enabled,
+			rings: this.enabled ? this.model.providers.map(p => toRing(p, now)) : [],
+			keepAwakeWhileAgentsRun: this.configurationService.getValue<boolean>(HivemindIDESettings.KeepAwakeWhileAgentsRun) !== false,
+		});
 	}
 
 	override dispose(): void {
-		// Turning the usage notch off takes the hardware one with it.
-		this.notchService.update(mainWindow.vscodeWindowId, { enabled: false, rings: [] });
+		// Turning the usage notch off takes the hardware one, and its Keep Awake, with it.
+		this.notchService.update(mainWindow.vscodeWindowId, { enabled: false, rings: [], keepAwakeWhileAgentsRun: false });
 		super.dispose();
 	}
 }

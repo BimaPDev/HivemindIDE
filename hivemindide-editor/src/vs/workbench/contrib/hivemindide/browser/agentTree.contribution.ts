@@ -34,7 +34,7 @@ const viewContainer = Registry.as<IViewContainersRegistry>(ViewExtensions.ViewCo
 
 Registry.as<IViewsRegistry>(ViewExtensions.ViewsRegistry).registerViews([{
 	id: HIVEMINDIDE_AGENT_TREE_VIEW_ID,
-	name: localize2('hivemindide.agents', 'Agents'),
+	name: localize2('hivemindide.agents', 'Maps'),
 	containerIcon: hivemindideViewIcon,
 	ctorDescriptor: new SyncDescriptor(AgentTreeViewPane),
 	canToggleVisibility: true,
@@ -53,7 +53,7 @@ registerAction2(class extends Action2 {
 	constructor() {
 		super({
 			id: 'hivemindide.agentTree.focus',
-			title: localize2('hivemindide.agentTree.focus', 'Focus Agents View'),
+			title: localize2('hivemindide.agentTree.focus', 'Focus Maps View'),
 			category: localize2('hivemindide.category', 'HivemindIDE'),
 			f1: true,
 			precondition: ContextKeyExpr.equals(`config.${HivemindIDESettings.AgentTreeEnabled}`, true),

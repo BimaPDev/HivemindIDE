@@ -115,7 +115,41 @@ body.phase-asking #ear-ask { display: block; } body.phase-asking #ear-spinner, b
 #home { display: grid; grid-template-columns: 190px 1fr; gap: 10px; }
 #usage { display: none; flex-direction: column; gap: 8px; max-height: 330px; overflow-y: auto; scrollbar-width: none; }
 #usage::-webkit-scrollbar { display: none; }
-body.tab-usage #home { display: none; } body.tab-usage #usage { display: flex; }
+body.tab-usage #home, body.tab-mac #home { display: none; } body.tab-usage #usage { display: flex; }
+
+/* Mac tab: Keep Awake and the machine's vitals on the left, listening ports on the right */
+.pill { position: relative; }
+.pill.awake::after { content: ''; position: absolute; top: 3px; right: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--honey); box-shadow: 0 0 6px var(--honey); }
+#mac { display: none; grid-template-columns: 1fr 1fr; gap: 10px; }
+body.tab-mac #mac { display: grid; }
+.card-head { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; }
+.card-head svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; color: var(--dim); }
+body.awake .card-head.awake-head svg { color: var(--honey); }
+#awake-status { color: var(--dim); font-size: 11.5px; margin-top: 4px; min-height: 16px; }
+.seg { display: flex; margin-top: 10px; padding: 2px; border-radius: 10px; background: #070708; border: 1px solid var(--line); }
+.seg button { flex: 1; height: 24px; border-radius: 8px; font-size: 11.5px; font-weight: 600; color: var(--dim); transition: background 0.18s var(--ease), color 0.18s; }
+.seg button:hover { color: var(--fg); }
+.seg button.on { background: #26262b; color: var(--fg); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); }
+#stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.stat { background: #09090b; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; min-width: 0; }
+.stat .v { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat .k { font-size: 10.5px; color: var(--dim); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat .meter { height: 3px; border-radius: 2px; background: var(--track); margin-top: 6px; overflow: hidden; }
+.stat .meter i { display: block; height: 100%; background: var(--c, var(--ok)); border-radius: 2px; transition: width 0.6s var(--ease); }
+.thermal-fair { --c: var(--elevated); } .thermal-serious { --c: var(--high); } .thermal-critical { --c: var(--critical); }
+.stat.thermal-fair .v, .stat.thermal-serious .v, .stat.thermal-critical .v { color: var(--c); }
+#ports { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 236px; overflow-y: auto; scrollbar-width: none; }
+#ports::-webkit-scrollbar { display: none; }
+#ports li { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 9px; min-width: 0; }
+#ports li:hover { background: #141417; }
+#ports .port { font: 600 12px/1 ui-monospace, "SF Mono", Menlo, monospace; min-width: 48px; }
+#ports .cmd { flex: 1; min-width: 0; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#ports .tag { font-size: 10px; color: var(--faint); }
+#ports button { height: 20px; min-width: 22px; padding: 0 6px; border-radius: 6px; color: var(--faint); font-size: 11px; font-weight: 600; transition: background 0.15s, color 0.15s; }
+#ports li:hover button { color: var(--dim); }
+#ports button:hover { background: #26262b; color: var(--fg); }
+#ports button.confirm { background: rgba(255, 69, 58, 0.18); color: var(--critical); }
+#no-ports { color: var(--faint); font-size: 11.5px; margin-top: 10px; }
 
 /* Agent card */
 #agent { cursor: pointer; }
@@ -194,7 +228,7 @@ body.side-limit #limit { display: flex; }
 #mascot { position: absolute; top: 0; left: 0; width: 56px; height: 56px; z-index: 2; transform-origin: 0 0; will-change: transform; cursor: pointer;
 	transition: transform var(--close-ms) var(--close-ease), opacity 0.2s; }
 #frame.open #mascot { transition: transform var(--open-ms) var(--open-ease), opacity 0.2s; }
-body.tab-usage #frame.open #mascot { opacity: 0; pointer-events: none; }
+body.tab-usage #frame.open #mascot, body.tab-mac #frame.open #mascot { opacity: 0; pointer-events: none; }
 #mascot svg { width: 100%; height: 100%; overflow: visible; }
 #cell { transform-origin: 50% 90%; animation: breathe 3.4s ease-in-out infinite; }
 body.phase-working #cell { animation: bob 0.55s ease-in-out infinite alternate; }
@@ -260,6 +294,7 @@ body.mood-happy .eyes, body.mood-sleepy .eyes { display: none; }
 		<div class="group">
 			<button class="pill active" id="tab-home"><svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/></svg></button>
 			<button class="pill" id="tab-usage"><svg viewBox="0 0 24 24"><path d="M4.5 16.5a8 8 0 1 1 15 0"/><path d="M12 13.5l3.5-4"/><circle cx="12" cy="14" r="1.2"/></svg></button>
+			<button class="pill" id="tab-mac"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="11" rx="1.8"/><path d="M8 20h8M12 16v4"/></svg></button>
 		</div>
 		<div class="group">
 			<button class="pill" id="btn-settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -283,6 +318,26 @@ body.mood-happy .eyes, body.mood-sleepy .eyes { display: none; }
 			</div>
 		</div>
 		<div id="usage"></div>
+		<div id="mac">
+			<div class="card">
+				<div class="card-head awake-head"><svg viewBox="0 0 24 24"><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3.5c-.6.8-.6 1.7 0 2.5M11.5 3.5c-.6.8-.6 1.7 0 2.5"/></svg><span id="awake-title"></span></div>
+				<div id="awake-status"></div>
+				<div class="seg" id="awake-seg">
+					<button data-mode="auto"></button><button data-mode="hour"></button><button data-mode="on"></button><button data-mode="off"></button>
+				</div>
+				<div id="stats">
+					<div class="stat" id="stat-cpu"><div class="v"></div><div class="k"></div><div class="meter"><i></i></div></div>
+					<div class="stat" id="stat-mem"><div class="v"></div><div class="k"></div><div class="meter"><i></i></div></div>
+					<div class="stat" id="stat-batt"><div class="v"></div><div class="k"></div><div class="meter"><i></i></div></div>
+					<div class="stat" id="stat-heat"><div class="v"></div><div class="k"></div><div class="meter"><i></i></div></div>
+				</div>
+			</div>
+			<div class="card">
+				<div class="card-head"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span id="ports-title"></span></div>
+				<ul id="ports"></ul>
+				<div id="no-ports"></div>
+			</div>
+		</div>
 	</div>
 	</div>
 </div>
@@ -475,6 +530,68 @@ body.mood-happy .eyes, body.mood-sleepy .eyes { display: none; }
 		});
 	}
 
+	// ---- Mac tab ----
+	var confirmPort = null, confirmTimer = 0;
+	function stat(id, value, key, percent, extraClass) {
+		var s = $(id);
+		s.className = 'stat' + (extraClass ? ' ' + extraClass : '');
+		s.querySelector('.v').textContent = value;
+		s.querySelector('.k').textContent = key;
+		s.querySelector('.meter i').style.width = (typeof percent === 'number' ? Math.min(100, Math.max(0, percent)) : 0) + '%';
+	}
+	function gb(bytes) { return (bytes / 1e9).toFixed(1) + ' GB'; }
+	function renderMac() {
+		var ka = state.keepAwake || { mode: 'auto', status: '' };
+		body.classList.toggle('awake', !!ka.reason);
+		$('tab-mac').classList.toggle('awake', !!ka.reason);
+		if (changed('awake', [ka, state.labels])) {
+			$('awake-title').textContent = label('keepAwake');
+			$('awake-status').textContent = ka.status;
+			Array.prototype.forEach.call(document.querySelectorAll('#awake-seg button'), function (b) {
+				var mode = b.getAttribute('data-mode');
+				b.textContent = label('mode' + mode.charAt(0).toUpperCase() + mode.slice(1));
+				b.classList.toggle('on', mode === ka.mode);
+			});
+		}
+		var sys = state.system;
+		if (sys && changed('system', sys)) {
+			stat('stat-cpu', pct(sys.cpu), label('cpu'), sys.cpu);
+			var mem = sys.memoryUsed !== undefined && sys.memoryTotal ? sys.memoryUsed / sys.memoryTotal * 100 : undefined;
+			stat('stat-mem', sys.memoryUsed !== undefined ? gb(sys.memoryUsed) : '\\u2014', label('memory') + (sys.memoryTotal ? ' \\u00b7 ' + gb(sys.memoryTotal) : ''), mem);
+			var b = sys.battery;
+			stat('stat-batt', b ? b.percent + '%' : '\\u2014', b ? (b.charging ? label('charging') : b.onPower ? label('onPower') : b.remaining ? label('left', b.remaining) : label('battery')) : label('battery'), b && b.percent, b && b.percent <= 15 && !b.onPower ? 'thermal-critical' : '');
+			var heat = sys.thermal || 'unknown';
+			stat('stat-heat', label('thermal_' + heat), label('heat'), { nominal: 20, fair: 55, serious: 80, critical: 100 }[heat] || 0, 'thermal-' + heat);
+		}
+		var ports = state.ports;
+		if (ports && changed('ports', [ports, confirmPort])) {
+			$('ports-title').textContent = label('ports');
+			var list = $('ports'); list.textContent = '';
+			ports.forEach(function (p) {
+				var li = el('li');
+				li.appendChild(el('span', 'port', ':' + p.port));
+				var cmd = el('span', 'cmd', p.command); cmd.title = p.command + ' \\u00b7 pid ' + p.pid + ' \\u00b7 ' + p.address; li.appendChild(cmd);
+				if (p.own) {
+					li.appendChild(el('span', 'tag', label('ownProcess')));
+				} else {
+					var key = p.pid + ':' + p.port;
+					var stop = el('button', confirmPort === key ? 'confirm' : '', confirmPort === key ? label('confirmStop') : '\\u2715');
+					stop.title = label('stop');
+					stop.addEventListener('click', function (e) {
+						e.stopPropagation();
+						// Two clicks: a stray one never kills a server.
+						if (confirmPort === key) { confirmPort = null; post({ type: 'stopPort', pid: p.pid, port: p.port }); }
+						else { confirmPort = key; clearTimeout(confirmTimer); confirmTimer = setTimeout(function () { confirmPort = null; render(); }, 3000); }
+						render();
+					});
+					li.appendChild(stop);
+				}
+				list.appendChild(li);
+			});
+			$('no-ports').textContent = ports.length ? '' : label('noPorts');
+		}
+	}
+
 	function render() {
 		if (!state || !state.notch || !state.labels) { return; }
 		var rings = state.rings || [], steps = state.steps || [];
@@ -488,7 +605,8 @@ body.mood-happy .eyes, body.mood-sleepy .eyes { display: none; }
 		if (changed('labels', [tab, state.labels])) {
 			$('tab-home').classList.toggle('active', tab === 'home');
 			$('tab-usage').classList.toggle('active', tab === 'usage');
-			$('tab-home').title = label('home'); $('tab-usage').title = label('usage'); $('btn-settings').title = label('settings'); $('btn-open').title = label('open');
+			$('tab-mac').classList.toggle('active', tab === 'mac');
+			$('tab-home').title = label('home'); $('tab-usage').title = label('usage'); $('tab-mac').title = label('mac'); $('btn-settings').title = label('settings'); $('btn-open').title = label('open');
 		}
 
 		// Right ear: the most urgent ring.
@@ -535,6 +653,7 @@ body.mood-happy .eyes, body.mood-sleepy .eyes { display: none; }
 		if (changed('tiles', rings)) { renderTiles(rings); }
 		$('none').textContent = label('noUsage');
 		if (changed('usage', rings)) { renderUsage(rings); }
+		renderMac();
 
 		setOpen(wantsOpen());
 	}
@@ -550,7 +669,7 @@ body.mood-happy .eyes, body.mood-sleepy .eyes { display: none; }
 		} else if (hover && !collapseTimer) {
 			collapseTimer = setTimeout(function () {
 				collapseTimer = 0;
-				if (!inside) { hover = false; tab = 'home'; render(); if (!state) { setOpen(false); } }
+				if (!inside) { hover = false; setTab('home'); if (!state) { setOpen(false); } }
 			}, 220);
 		}
 	}
@@ -563,16 +682,24 @@ body.mood-happy .eyes, body.mood-sleepy .eyes { display: none; }
 		post({ type: 'focus' });
 	});
 	$('agent').addEventListener('click', function () { post({ type: 'focus' }); });
-	$('tab-home').addEventListener('click', function () { tab = 'home'; render(); });
+	/** The main process reads the Mac's vitals and ports only while the Mac tab is open: tell it. */
+	function setTab(next) {
+		if (next !== tab) { tab = next; post({ type: 'tab', tab: next }); }
+		render();
+	}
+	$('tab-home').addEventListener('click', function () { setTab('home'); });
 	var introTimer = 0;
 	function showUsage() {
-		tab = 'usage';
 		var usage = $('usage');
 		usage.classList.add('intro'); clearTimeout(introTimer);
 		introTimer = setTimeout(function () { usage.classList.remove('intro'); }, 700);
-		render();
+		setTab('usage');
 	}
 	$('tab-usage').addEventListener('click', showUsage);
+	$('tab-mac').addEventListener('click', function () { setTab('mac'); });
+	Array.prototype.forEach.call(document.querySelectorAll('#awake-seg button'), function (b) {
+		b.addEventListener('click', function () { post({ type: 'keepAwake', mode: b.getAttribute('data-mode') }); });
+	});
 	$('btn-settings').addEventListener('click', function () { post({ type: 'settings' }); });
 	$('btn-open').addEventListener('click', function () { post({ type: 'focus' }); });
 

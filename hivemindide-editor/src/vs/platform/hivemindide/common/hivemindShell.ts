@@ -64,6 +64,12 @@ export type HivemindShellEvent =
 	 * this machine (the Local route, or a provider at a loopback address).
 	 */
 	| { readonly sessionId: string; readonly kind: 'start'; readonly provider?: string; readonly model?: string; readonly local?: boolean; readonly endpoint?: string }
+	/**
+	 * The local model's server cut this turn's prompt to fit its context window:
+	 * `sent` tokens went in, only the last `kept` were read. The answer is then
+	 * about a fragment and should not be trusted. Fired before `end`.
+	 */
+	| { readonly sessionId: string; readonly kind: 'truncated'; readonly model?: string; readonly sent: number; readonly kept: number }
 	/** The turn is over, however it ended. */
 	| { readonly sessionId: string; readonly kind: 'end' }
 	/**

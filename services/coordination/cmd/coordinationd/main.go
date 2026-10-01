@@ -48,7 +48,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           api.New(leases, sessions, rdb, log).Routes(),
+		Handler:           api.New(leases, sessions, rdb, log).WithTeamSetupSecret(os.Getenv("COORDINATION_TEAM_SETUP_SECRET")).Routes(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
 		// No WriteTimeout: the presence stream is a long-lived WebSocket, and a

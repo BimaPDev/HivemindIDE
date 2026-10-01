@@ -98,16 +98,22 @@ const SECTIONS: readonly ISettingsSection[] = [
 				label: localize('hivemindide.settings.usageNotch.macbook', "Use the MacBook notch"),
 				description: localize('hivemindide.settings.usageNotch.macbookDesc', "On a MacBook with a camera notch, live in the notch itself, visible over any app: the Hivemind cell, the usage rings, what the agents are doing, and their permission requests. Found automatically."),
 			},
+			{
+				kind: 'boolean',
+				key: HivemindIDESettings.KeepAwakeWhileAgentsRun,
+				label: localize('hivemindide.settings.keepAwake', "Keep the Mac awake while agents work"),
+				description: localize('hivemindide.settings.keepAwakeDesc', "The Mac will not go to sleep while an agent is running, and for two minutes after, so a long run is not cut off. The display can still sleep. The notch's Mac tab can also keep it awake for an hour or until you turn it off."),
+			},
 		],
 	},
 	{
-		title: localize('hivemindide.settings.section.agents', "Agents"),
+		title: localize('hivemindide.settings.section.agents', "Maps"),
 		rows: [
 			{
 				kind: 'boolean',
 				key: HivemindIDESettings.AgentTreeEnabled,
-				label: localize('hivemindide.settings.agents.enabled', "Show Agents sidebar"),
-				description: localize('hivemindide.agentTree.enabled', "Show the HivemindIDE Agents sidebar with the author+AI spawn tree."),
+				label: localize('hivemindide.settings.agents.enabled', "Show Maps sidebar"),
+				description: localize('hivemindide.agentTree.enabled', "Show the HivemindIDE Maps sidebar with the author+AI spawn tree."),
 			},
 			{
 				kind: 'string',

@@ -1,0 +1,93 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+/*
+ * Bottom panel tabs: icon, small-caps label and count, with an underline under the
+ * selected tab instead of the modern UI pill. `.actions-container` in every selector
+ * outranks the modern UI tab rules, which also use !important.
+ */
+
+.monaco-workbench .part.panel.basepanel > .title {
+	border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon) {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 14px !important;
+	color: var(--vscode-panelTitle-inactiveForeground);
+}
+
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon):is(.checked, :hover) {
+	color: var(--vscode-panelTitle-activeForeground);
+}
+
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon) > .hivemind-tab-icon {
+	position: relative;
+	z-index: 1;
+	font-size: 14px;
+	color: inherit;
+}
+
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon) > .action-label {
+	padding: 0 !important;
+	font-size: 11px !important;
+	font-weight: 600 !important;
+	letter-spacing: 0.1em;
+	text-transform: uppercase !important;
+	color: inherit !important;
+}
+
+/* The selected tab: an underline the width of the tab, no fill. */
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon) > .active-item-indicator {
+	top: auto !important;
+	right: 0 !important;
+	bottom: 0 !important;
+	left: 0 !important;
+	width: auto !important;
+	height: 2px !important;
+	border-radius: 0 !important;
+	transform: none !important;
+	background-color: transparent !important;
+}
+
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon).checked > .active-item-indicator {
+	background-color: var(--vscode-panelTitle-activeBorder, var(--vscode-panelTitle-activeForeground)) !important;
+}
+
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon) > .active-item-indicator::before {
+	display: none;
+}
+
+/* Counts and "Live": outlined pills. */
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon) > .badge {
+	margin-left: 0;
+}
+
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon) > .badge .badge-content,
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon) > .hivemind-tab-live {
+	position: relative;
+	z-index: 1;
+	box-sizing: border-box;
+	height: 18px;
+	min-width: 18px;
+	padding: 0 6px;
+	border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border)) !important;
+	border-radius: 9px;
+	background-color: transparent !important;
+	color: var(--vscode-descriptionForeground) !important;
+	font-size: 10px;
+	font-weight: 600;
+	line-height: 16px;
+	text-align: center;
+}
+
+.monaco-workbench .part.panel.basepanel > .title > .composite-bar-container > .composite-bar > .monaco-action-bar > .actions-container > .action-item:not(.icon) > .hivemind-tab-live {
+	padding: 0 7px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--vscode-panelTitle-activeForeground) !important;
+}

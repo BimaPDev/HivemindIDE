@@ -53,6 +53,13 @@ func leaseKey(repoID, path string) string {
 	return fmt.Sprintf("hivemindide:{%s}:lease:%s", repoID, path)
 }
 
+// indexKey is the set of paths a repo has leases on, so listing one repo reads
+// only its own leases. Paths whose lease has expired are dropped from it the
+// next time the repo is listed.
+func indexKey(repoID string) string {
+	return fmt.Sprintf("hivemindide:{%s}:leaseindex", repoID)
+}
+
 func queueKey(repoID, path string) string {
 	return fmt.Sprintf("hivemindide:{%s}:queue:%s", repoID, path)
 }
@@ -76,10 +83,12 @@ var acquireScript = redis.NewScript(`
 local holder = redis.call('GET', KEYS[1])
 if not holder then
   redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
+  redis.call('SADD', KEYS[3], ARGV[4])
   return {'granted', ARGV[1], '0'}
 end
 if holder == ARGV[1] then
   redis.call('EXPIRE', KEYS[1], ARGV[2])
+  redis.call('SADD', KEYS[3], ARGV[4])
   return {'granted', holder, '0'}
 end
 if ARGV[3] == '1' then
@@ -104,6 +113,7 @@ if next_session then
   return {'1', next_session}
 end
 redis.call('DEL', KEYS[1])
+redis.call('SREM', KEYS[3], ARGV[3])
 return {'1', ''}
 `)
 
@@ -116,8 +126,8 @@ func (m *Manager) Request(ctx context.Context, repoID, path, sessionID string, t
 	}
 
 	raw, err := acquireScript.Run(ctx, m.rdb,
-		[]string{leaseKey(repoID, path), queueKey(repoID, path)},
-		sessionID, int(ttl.Seconds()), waitFlag).Slice()
+		[]string{leaseKey(repoID, path), queueKey(repoID, path), indexKey(repoID)},
+		sessionID, int(ttl.Seconds()), waitFlag, path).Slice()
 	if err != nil {
 		return Result{}, fmt.Errorf("acquire: %w", err)
 	}
@@ -143,8 +153,8 @@ func (m *Manager) Request(ctx context.Context, repoID, path, sessionID string, t
 // expired first, and the editor should not surface that as a failure.
 func (m *Manager) Release(ctx context.Context, repoID, path, sessionID string, ttl time.Duration) (released bool, promoted string, err error) {
 	raw, err := releaseScript.Run(ctx, m.rdb,
-		[]string{leaseKey(repoID, path), queueKey(repoID, path)},
-		sessionID, int(ClampTTL(ttl).Seconds())).Slice()
+		[]string{leaseKey(repoID, path), queueKey(repoID, path), indexKey(repoID)},
+		sessionID, int(ClampTTL(ttl).Seconds()), path).Slice()
 	if err != nil {
 		return false, "", fmt.Errorf("release: %w", err)
 	}
@@ -174,41 +184,43 @@ func (m *Manager) Holder(ctx context.Context, repoID, path string) (string, time
 }
 
 // List returns every active lease in a repo.
-//
-// This SCANs a key prefix, which is fine at the scale this service targets (one
-// repo, a handful of sessions). A deployment with thousands of live leases would
-// want a secondary index instead.
 func (m *Manager) List(ctx context.Context, repoID string) ([]Lease, error) {
-	prefix := fmt.Sprintf("hivemindide:{%s}:lease:", repoID)
-	var (
-		cursor uint64
-		out    = []Lease{}
-	)
-	for {
-		keys, next, err := m.rdb.Scan(ctx, cursor, prefix+"*", 100).Result()
-		if err != nil {
-			return nil, fmt.Errorf("scan leases: %w", err)
-		}
-		for _, k := range keys {
-			session, err := m.rdb.Get(ctx, k).Result()
-			if errors.Is(err, redis.Nil) {
-				continue // expired between SCAN and GET
-			}
-			if err != nil {
-				return nil, fmt.Errorf("read lease %s: %w", k, err)
-			}
-			ttl, _ := m.rdb.TTL(ctx, k).Result()
-			out = append(out, Lease{
-				Path:      k[len(prefix):],
-				SessionID: session,
-				ExpiresAt: time.Now().UTC().Add(ttl),
-			})
-		}
-		if next == 0 {
-			return out, nil
-		}
-		cursor = next
+	paths, err := m.rdb.SMembers(ctx, indexKey(repoID)).Result()
+	if err != nil {
+		return nil, fmt.Errorf("list leases: %w", err)
 	}
+	out := []Lease{}
+	if len(paths) == 0 {
+		return out, nil
+	}
+	// One round trip for every holder and TTL.
+	pipe := m.rdb.Pipeline()
+	holders := make([]*redis.StringCmd, len(paths))
+	ttls := make([]*redis.DurationCmd, len(paths))
+	for i, p := range paths {
+		holders[i] = pipe.Get(ctx, leaseKey(repoID, p))
+		ttls[i] = pipe.TTL(ctx, leaseKey(repoID, p))
+	}
+	if _, err := pipe.Exec(ctx); err != nil && !errors.Is(err, redis.Nil) {
+		return nil, fmt.Errorf("read leases: %w", err)
+	}
+	now := time.Now().UTC()
+	gone := []any{}
+	for i, p := range paths {
+		session, err := holders[i].Result()
+		if errors.Is(err, redis.Nil) {
+			gone = append(gone, p) // expired
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("read lease %s: %w", p, err)
+		}
+		out = append(out, Lease{Path: p, SessionID: session, ExpiresAt: now.Add(ttls[i].Val())})
+	}
+	if len(gone) > 0 {
+		m.rdb.SRem(ctx, indexKey(repoID), gone...)
+	}
+	return out, nil
 }
 
 func parseTriple(raw []any) (state, holder string, position int, err error) {

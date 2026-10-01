@@ -14,13 +14,15 @@
 
 import { ChildProcess, execFile, spawn } from 'child_process';
 import { promises as fs } from 'fs';
+import { homedir } from 'os';
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable } from '../../../base/common/lifecycle.js';
 import { delimiter, join } from '../../../base/common/path.js';
-import { isWindows } from '../../../base/common/platform.js';
+import { isMacintosh, isWindows } from '../../../base/common/platform.js';
 import { generateUuid } from '../../../base/common/uuid.js';
 import { IEnvironmentMainService } from '../../environment/electron-main/environmentMainService.js';
 import { ILogService } from '../../log/common/log.js';
+import { IOllamaTruncation, parseOllamaTruncations } from '../common/gpuStats.js';
 import { HivemindCliPermissions, HivemindShellEvent, HivemindShellStopReason, IHivemindCliAgent, IHivemindCliBackend, IHivemindShellChoice, IHivemindShellLaunch, IHivemindShellPermissionRequest, IHivemindShellService, IHivemindShellSession } from '../common/hivemindShell.js';
 import { accountHome, agentEnvironment, cliAgentSpec, detectCliAgents, runCliTurn } from './cliAgents.js';
 
@@ -511,7 +513,9 @@ export class HivemindShellMainService extends Disposable implements IHivemindShe
 
 	async prompt(sessionId: string, text: string): Promise<HivemindShellStopReason> {
 		// Before the model answers: a local model can spend seconds loading with nothing to report.
-		this._onDidEvent.fire({ sessionId, kind: 'start', ...this.routeOf(sessionId) });
+		const route = this.routeOf(sessionId);
+		const startedAt = Date.now();
+		this._onDidEvent.fire({ sessionId, kind: 'start', ...route });
 		try {
 			const cliSession = this.cliSessions.get(sessionId);
 			if (cliSession) {
@@ -526,6 +530,14 @@ export class HivemindShellMainService extends Disposable implements IHivemindShe
 				this.activePrompts.delete(sessionId);
 			}
 		} finally {
+			// A local model's server may have cut the prompt to fit: it says so only in its own log.
+			if (route.local) {
+				const cut = await ollamaTruncationSince(startedAt);
+				if (cut) {
+					this.logService.warn(`[HivemindShell] ${route.model ?? 'the local model'} got ${cut.sent} prompt tokens but kept only ${cut.kept}: the prompt was cut to fit its context`);
+					this._onDidEvent.fire({ sessionId, kind: 'truncated', model: route.model, sent: cut.sent, kept: cut.kept });
+				}
+			}
 			// Finished, failed or cancelled: a long silent tool call is not the end, this is.
 			this._onDidEvent.fire({ sessionId, kind: 'end' });
 		}
@@ -586,6 +598,41 @@ export class HivemindShellMainService extends Disposable implements IHivemindShe
 			this.send(request.runtime, { jsonrpc: '2.0', id: request.rpcId, result: { outcome: optionId ? { outcome: 'selected', optionId } : { outcome: 'cancelled' } } });
 		}
 		this._onDidResolvePermission.fire(id);
+	}
+}
+
+/** Where Ollama writes its server log, per platform (Linux logs to the journal: nothing to read). */
+function ollamaLogPath(): string | undefined {
+	if (isMacintosh) {
+		return join(homedir(), '.ollama', 'logs', 'server.log');
+	}
+	if (isWindows && process.env.LOCALAPPDATA) {
+		return join(process.env.LOCALAPPDATA, 'Ollama', 'server.log');
+	}
+	return undefined;
+}
+
+/** The largest cut Ollama made to a prompt since `sinceMs`, from the tail of its log. */
+async function ollamaTruncationSince(sinceMs: number): Promise<IOllamaTruncation | undefined> {
+	const path = ollamaLogPath();
+	if (!path) {
+		return undefined;
+	}
+	try {
+		const handle = await fs.open(path, 'r');
+		try {
+			const { size } = await handle.stat();
+			const length = Math.min(size, 64 * 1024);
+			const buffer = Buffer.alloc(length);
+			await handle.read(buffer, 0, length, size - length);
+			// Log lines carry second-level local times; allow for the clock landing a moment early.
+			const cuts = parseOllamaTruncations(buffer.toString('utf8'), sinceMs - 1500);
+			return cuts.sort((a, b) => b.sent - a.sent)[0];
+		} finally {
+			await handle.close();
+		}
+	} catch {
+		return undefined; // no Ollama, or not this machine's log
 	}
 }
 

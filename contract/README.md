@@ -280,6 +280,31 @@ with backoff.
 
 ---
 
+## Teams: who may use a repo's hub, and who may share it
+
+A repo without a team is open, as the hub always was. `POST /v1/teams/{repo_id}`
+makes a team with the caller as **owner**; from then on every call about that repo
+(presence, leases, the stream) needs a member's token, and **identity comes from the
+token**: `user_id` and `display_name` in a body are ignored. Tokens and invite codes
+are shown once and stored only as SHA-256 hashes.
+
+| Call | Who | Body → result |
+|---|---|---|
+| `POST /v1/teams/{repo_id}` | anyone, once (plus `X-Hivemind-Setup-Secret` when the hub sets `COORDINATION_TEAM_SETUP_SECRET`) | `{user_id, display_name}` → `{member, token}` |
+| `GET /v1/teams/{repo_id}` | members | → `{you, members, invites?}` (invites for owners and admins only) |
+| `POST /v1/teams/{repo_id}/invites` | owner, admin | `{role: member\|admin, ttl_hours, max_uses}` → `{invite, code}` |
+| `DELETE /v1/teams/{repo_id}/invites/{id}` | owner, admin | revokes |
+| `POST /v1/teams/{repo_id}/join` | holder of a code | `{code, user_id, display_name}` → `{member, token}` |
+| `PATCH /v1/teams/{repo_id}/members/{user_id}` | owner: anyone else to member/admin; admin: member → admin only | `{role}` |
+| `DELETE /v1/teams/{repo_id}/members/{user_id}` | owner: anyone else; admin: members; anyone: themselves (leave) | signs out all their tokens |
+| `POST /v1/teams/{repo_id}/transfer` | owner | `{user_id}`: they become owner, the old owner an admin |
+
+Tokens go in `Authorization: Bearer …`; the WebSocket stream takes `?access_token=…`
+because browsers cannot set headers on it. Nobody is invited as owner, nobody removes
+the owner, and there is always exactly one. The rules live in `team.Can*`
+(`services/coordination/internal/team`) and are mirrored for the UI in the fork's
+`teamPolicy.ts`; the hub enforces them either way.
+
 ## How the two services meet
 
 They do not call each other. The fork calls both.
