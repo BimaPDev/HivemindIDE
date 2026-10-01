@@ -15,10 +15,13 @@
 import { localize } from '../../../../nls.js';
 import { Registry } from '../../../../platform/registry/common/platform.js';
 import { IConfigurationRegistry, Extensions as ConfigurationExtensions, ConfigurationScope } from '../../../../platform/configuration/common/configurationRegistry.js';
+import { ACCENT_COLOR_CHOICES, DEFAULT_ACCENT_COLOR, DEFAULT_CUSTOM_ACCENT_COLOR } from './accentColor.js';
 
 export const HIVEMINDIDE_CONFIG_SECTION = 'hivemindide';
 
 export const enum HivemindIDESettings {
+	AccentColor = 'hivemindide.appearance.accentColor',
+	CustomAccentColor = 'hivemindide.appearance.customAccentColor',
 	UsageIndicatorEnabled = 'hivemindide.usageIndicator.enabled',
 	UsageIndicatorShowCost = 'hivemindide.usageIndicator.showCost',
 	UsageIndicatorDailyTokenBudget = 'hivemindide.usageIndicator.dailyTokenBudget',
@@ -79,6 +82,38 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 	title: localize('hivemindide.configuration.title', "HivemindIDE"),
 	type: 'object',
 	properties: {
+		[HivemindIDESettings.AccentColor]: {
+			type: 'string',
+			enum: [...ACCENT_COLOR_CHOICES],
+			enumItemLabels: [
+				localize('hivemindide.appearance.accentColor.ember', "Ember (orange)"),
+				localize('hivemindide.appearance.accentColor.jade', "Jade (green)"),
+				localize('hivemindide.appearance.accentColor.cobalt', "Cobalt (blue)"),
+				localize('hivemindide.appearance.accentColor.violet', "Violet (purple)"),
+				localize('hivemindide.appearance.accentColor.chrome', "Chrome (white)"),
+				localize('hivemindide.appearance.accentColor.custom', "Custom"),
+			],
+			markdownEnumDescriptions: [
+				localize('hivemindide.appearance.accentColor.emberDesc', "Red through orange to gold."),
+				localize('hivemindide.appearance.accentColor.jadeDesc', "Teal through lime."),
+				localize('hivemindide.appearance.accentColor.cobaltDesc', "Deep cobalt to pale sky."),
+				localize('hivemindide.appearance.accentColor.violetDesc', "Deep violet to pale lilac."),
+				localize('hivemindide.appearance.accentColor.chromeDesc', "No tint: graphite to white."),
+				localize('hivemindide.appearance.accentColor.customDesc', "The color in `#hivemindide.appearance.customAccentColor#`."),
+			],
+			default: DEFAULT_ACCENT_COLOR,
+			markdownDescription: localize('hivemindide.appearance.accentColor', "Accent color of the Hivemind Dynamic and Hivemind Light themes: buttons, badges, the active tab, focus rings, the cursor and the visor gradient. Choose `custom` to use any color from `#hivemindide.appearance.customAccentColor#`. The single-lens themes (Hivemind Ember, Jade, Cobalt, Violet, Chrome) keep their own lens, and colors set in `#workbench.colorCustomizations#` still win."),
+			tags: ['hivemindide']
+		},
+		[HivemindIDESettings.CustomAccentColor]: {
+			type: 'string',
+			format: 'color-hex',
+			default: DEFAULT_CUSTOM_ACCENT_COLOR,
+			pattern: '^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$',
+			patternErrorMessage: localize('hivemindide.appearance.customAccentColor.pattern', "Use a hex color such as #3d9bff."),
+			markdownDescription: localize('hivemindide.appearance.customAccentColor', "The accent color, as hex (for example `#3d9bff`), used when `#hivemindide.appearance.accentColor#` is `custom`. Hover, text and gradient shades are derived from it, and button text turns black or white to stay readable."),
+			tags: ['hivemindide']
+		},
 		[HivemindIDESettings.UsageIndicatorEnabled]: {
 			type: 'boolean',
 			default: true,
@@ -133,7 +168,7 @@ Registry.as<IConfigurationRegistry>(ConfigurationExtensions.Configuration).regis
 			type: 'boolean',
 			default: true,
 			scope: ConfigurationScope.APPLICATION,
-			markdownDescription: localize('hivemindide.usageNotch.useMacbookNotch', "On a MacBook with a camera notch, show the usage notch in the notch itself, outside the editor window, with the Hivemind cell, what the agents are doing, and their permission requests. Found automatically; on other Macs and screens the notch stays on the window edge."),
+			markdownDescription: localize('hivemindide.usageNotch.useMacbookNotch', "Show the usage notch at the top of the screen, outside the editor window and over any app, with the Hivemind cell, what the agents are doing, and their permission requests. On a MacBook with a camera notch it lives in the notch itself; on other Macs, Windows and Linux a notch is drawn at the top center of the main display. Hover it to open. Off keeps the notch on the window edge."),
 			tags: ['hivemindide']
 		},
 		[HivemindIDESettings.KeepAwakeWhileAgentsRun]: {

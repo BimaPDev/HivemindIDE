@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------
- *  Feeds this window's usage rings to the MacBook notch (see
+ *  Feeds this window's usage rings to the notch at the top of the screen (see
  *  platform/hivemindide/common/hivemindNotch.ts) and hides the in-window
- *  notch while the hardware one shows, so the rings are never in two places.
+ *  notch while that one shows, so the rings are never in two places.
  *
- *  The main process decides whether the Mac has a notch; this window only says
- *  whether it wants one. Disposing says it no longer does.
+ *  The main process decides where it goes (the MacBook camera notch, or one
+ *  drawn on the main display); this window only says whether it wants one. Disposing says it no longer does.
  *--------------------------------------------------------------------------------------------*/
 
 import { RunOnceScheduler } from '../../../../../base/common/async.js';

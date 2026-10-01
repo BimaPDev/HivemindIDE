@@ -5,7 +5,7 @@
 
 import assert from 'assert';
 import { ensureNoDisposablesAreLeakedInTestSuite } from '../../../../base/test/common/utils.js';
-import { applyNotchStep, clampText, findNotch, INotchDisplayInfo, INotchScreenInfo, INotchSteps, NOTCH_DONE_MS, NOTCH_MAX_STEPS, NOTCH_STUCK_MS, notchPhase, parseNotchProbe } from '../../common/hivemindNotch.js';
+import { applyNotchStep, clampText, findNotch, INotchDisplayInfo, INotchScreenInfo, INotchSteps, NOTCH_DONE_MS, NOTCH_MAX_STEPS, NOTCH_STUCK_MS, notchPhase, parseNotchProbe, virtualNotch } from '../../common/hivemindNotch.js';
 
 suite('HivemindIDE MacBook notch', () => {
 
@@ -38,6 +38,18 @@ suite('HivemindIDE MacBook notch', () => {
 			findNotch([builtIn], [displays[1]]),
 			findNotch([], displays),
 		], [undefined, undefined, undefined, undefined]);
+	});
+
+	test('no notch: one is drawn at the top center of the main display, as tall as the menu bar on a Mac', () => {
+		const mac = { id: 3, internal: true, bounds: { x: 0, y: 0, width: 1440, height: 900 }, workArea: { x: 0, y: 24, width: 1440, height: 851 } };
+		// A Windows display left of the primary one; the taskbar is at the bottom, so the work area starts at the top.
+		const pc = { id: 4, internal: false, bounds: { x: -1920, y: 0, width: 1920, height: 1080 }, workArea: { x: -1920, y: 0, width: 1920, height: 1032 } };
+		assert.deepStrictEqual([virtualNotch(mac, true), virtualNotch(pc, false), virtualNotch({ ...mac, workArea: mac.bounds }, true)], [
+			{ displayId: 3, virtual: true, x: 640, y: 0, width: 160, height: 24 },
+			{ displayId: 4, virtual: true, x: -1040, y: 0, width: 160, height: 28 },
+			// Menu bar hidden: the usual size.
+			{ displayId: 3, virtual: true, x: 640, y: 0, width: 160, height: 28 },
+		]);
 	});
 
 	test('the checklist keeps the latest run: titles from the start, status from the latest event', () => {

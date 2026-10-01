@@ -194,6 +194,9 @@ LIGHT = dict(
 	),
 )
 
+# Which keys carry the accent, and at what alpha, is mirrored in
+# src/vs/workbench/contrib/hivemindide/common/accentColor.ts (the accent color
+# setting repaints them at runtime). Keep the two in step.
 def colors(p):
 	T = '#00000000'
 	c = {

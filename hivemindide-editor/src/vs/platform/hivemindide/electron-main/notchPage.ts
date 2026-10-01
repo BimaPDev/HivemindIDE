@@ -4,7 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------------------------
- *  The page inside the MacBook notch window.
+ *  The page inside the notch window: over the MacBook camera notch, or drawn
+ *  at the top of the main display where there is none.
  *
  *  Self-contained on purpose: it is loaded as a data URL, so it needs no build
  *  entry point, no preload and no Node access. The main process pushes state in
@@ -61,7 +62,7 @@ const NOTCH_PAGE = /* html */`<!doctype html>
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; user-select: none; -webkit-user-select: none;
-	font: 12.5px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; color: var(--fg); cursor: default;
+	font: 12.5px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; color: var(--fg); cursor: default;
 	-webkit-font-smoothing: antialiased; }
 button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
 body.boot * { transition: none !important; }
@@ -564,6 +565,12 @@ body.mood-happy .eyes, body.mood-sleepy .eyes { display: none; }
 			stat('stat-heat', label('thermal_' + heat), label('heat'), { nominal: 20, fair: 55, serious: 80, critical: 100 }[heat] || 0, 'thermal-' + heat);
 		}
 		var ports = state.ports;
+		// Read but not listed (Windows, or lsof missing): say so rather than claim nothing listens.
+		if (!ports && sys && changed('ports', null)) {
+			$('ports-title').textContent = label('ports');
+			$('ports').textContent = '';
+			$('no-ports').textContent = label('noPortsHere');
+		}
 		if (ports && changed('ports', [ports, confirmPort])) {
 			$('ports-title').textContent = label('ports');
 			var list = $('ports'); list.textContent = '';

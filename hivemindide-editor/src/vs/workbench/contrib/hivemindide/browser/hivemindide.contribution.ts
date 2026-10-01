@@ -9,6 +9,7 @@
 import { registerWorkbenchContribution2, WorkbenchPhase } from '../../../common/contributions.js';
 import { UsageIndicatorContribution } from './usageIndicator.js';
 import { HideCopilotContribution } from './hideCopilot.js';
+import { AccentColorContribution } from './accentColor.js';
 
 // Registers the `hivemindide.*` settings schema as a side effect of the import.
 import '../common/hivemindideConfiguration.js';
@@ -39,6 +40,13 @@ import './userSidebar.contribution.js';
 
 // Visor accent: lens gradient on accent strokes, for themes that define it.
 import './visor.js';
+
+// BlockStartup so the chosen accent is in place before the workbench first paints.
+registerWorkbenchContribution2(
+	AccentColorContribution.ID,
+	AccentColorContribution,
+	WorkbenchPhase.BlockStartup
+);
 
 // Before ChatStatusBarEntry (BlockRestore) so the Copilot status icon never
 // paints on a cold start.

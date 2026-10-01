@@ -13,7 +13,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Disposable, MutableDisposable } from '../../../../../base/common/lifecycle.js';
-import { isMacintosh } from '../../../../../base/common/platform.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { CommandsRegistry } from '../../../../../platform/commands/common/commands.js';
@@ -51,9 +50,8 @@ class UsageNotch extends Disposable {
 		const model = this._register(instantiationService.createInstance(UsageLimitsModel));
 		const widget = this._register(instantiationService.createInstance(UsageNotchWidget, model));
 		this._register(instantiationService.createInstance(UsageAlerts, model));
-		if (isMacintosh) {
-			this._register(instantiationService.createInstance(MacbookNotchBridge, model, widget));
-		}
+		// The notch at the top of the screen: the camera notch, or one drawn where there is none.
+		this._register(instantiationService.createInstance(MacbookNotchBridge, model, widget));
 
 		// Registered with the model it refreshes, and gone with it.
 		this._register(CommandsRegistry.registerCommand(REFRESH_COMMAND_ID, () => model.refresh()));

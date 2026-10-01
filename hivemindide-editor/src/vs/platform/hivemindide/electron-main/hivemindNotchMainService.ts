@@ -9,27 +9,29 @@
  *  Owns the one notch window. It is a non-activating panel sitting over the
  *  camera notch at the screen-saver level (above the menu bar), on every Space
  *  and over full-screen apps, and click-through except where the black shape
- *  is: the page reports when the pointer is over it.
+ *  is: the page reports when the pointer is over it. Where no screen has a
+ *  notch (a Mac without one, Windows, Linux) the same window draws one at the
+ *  top center of the main display.
  *
  *  Holds nothing while no window wants it: no window, no cursor polling, no
- *  display listeners. Detection runs `osascript` once, and again when a
- *  display is added, removed, resized, rescaled or rotated.
+ *  display listeners. Detection runs `osascript` once (macOS only), and again
+ *  when a display is added, removed, resized, rescaled or rotated.
  *--------------------------------------------------------------------------------------------*/
 
 import { execFile } from 'child_process';
-import { cpus, totalmem } from 'os';
+import { cpus, freemem, totalmem } from 'os';
 import { BrowserWindow, Display, powerMonitor, powerSaveBlocker, screen } from 'electron';
 import { RunOnceScheduler } from '../../../base/common/async.js';
 import { CancellationToken } from '../../../base/common/cancellation.js';
 import { Emitter } from '../../../base/common/event.js';
 import { Disposable, DisposableStore, MutableDisposable, toDisposable } from '../../../base/common/lifecycle.js';
-import { isMacintosh } from '../../../base/common/platform.js';
+import { isMacintosh, isWindows } from '../../../base/common/platform.js';
 import { localize } from '../../../nls.js';
 import { ILogService } from '../../log/common/log.js';
 import { FocusMode } from '../../native/common/native.js';
 import { INativeRunActionInWindowRequest } from '../../window/common/window.js';
 import { IWindowsMainService } from '../../windows/electron-main/windows.js';
-import { applyNotchStep, clampText, findNotch, IHivemindNotchService, INotchRect, INotchRing, INotchStep, INotchSteps, INotchWindowState, KEEP_AWAKE_GRACE_MS, KEEP_AWAKE_HOUR_MS, KeepAwakeMode, KeepAwakeReason, keepAwakeReason, NOTCH_DONE_MS, NOTCH_PROBE_SCRIPT, NOTCH_STUCK_MS, NotchPhase, notchPhase, parseNotchProbe } from '../common/hivemindNotch.js';
+import { applyNotchStep, clampText, findNotch, IHivemindNotchService, INotchRect, INotchRing, INotchStep, INotchSteps, INotchWindowState, KEEP_AWAKE_GRACE_MS, KEEP_AWAKE_HOUR_MS, KeepAwakeMode, KeepAwakeReason, keepAwakeReason, NOTCH_DONE_MS, NOTCH_PROBE_SCRIPT, NOTCH_STUCK_MS, NotchPhase, notchPhase, parseNotchProbe, virtualNotch } from '../common/hivemindNotch.js';
 import { formatBytes, IGpuStats, IModelOffload, NVIDIA_SMI_ARGS, parseIoregGpu, parseNvidiaSmi, parseOllamaPs } from '../common/gpuStats.js';
 import { cpuPercent, IListeningPort, isSystemListener, ISystemStats, parseLsofListening, parsePmsetBattery, parseVmStat } from '../common/systemStats.js';
 import { HivemindShellEvent, IHivemindShellPermissionRequest, IHivemindShellService } from '../common/hivemindShell.js';
@@ -164,9 +166,6 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 	}
 
 	async update(windowId: number, state: INotchWindowState): Promise<void> {
-		if (!isMacintosh) {
-			return;
-		}
 		this.windows.set(windowId, state);
 		if (state.enabled) {
 			this.rings = state.rings;
@@ -186,21 +185,30 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 
 	// ---- Detection --------------------------------------------------------------------
 
+	/** The camera notch if a screen has one, else one drawn at the top center of the main display. */
 	private detect(): Promise<void> {
-		this.detecting ??= new Promise<void>(resolve => {
+		this.detecting ??= (async () => {
+			const real = isMacintosh ? await this.findHardwareNotch() : undefined;
+			this.notch = real ?? virtualNotch(screen.getPrimaryDisplay(), isMacintosh);
+			this.logService.info(`[hivemind notch] ${this.notch.virtual ? 'drawn' : 'camera'} notch ${this.notch.width}x${this.notch.height} at ${this.notch.x},${this.notch.y}`);
+			this.detected = true;
+			this.detecting = undefined;
+		})();
+		return this.detecting;
+	}
+
+	private findHardwareNotch(): Promise<INotchRect | undefined> {
+		return new Promise(resolve => {
 			execFile('/usr/bin/osascript', ['-l', 'JavaScript', '-e', NOTCH_PROBE_SCRIPT], { timeout: 5000 }, (err, stdout) => {
-				const displays = screen.getAllDisplays().map((d: Display) => ({ id: d.id, internal: d.internal, bounds: d.bounds }));
-				this.notch = err ? undefined : findNotch(parseNotchProbe(String(stdout).trim()), displays);
 				if (err) {
 					this.logService.warn('[hivemind notch] could not read the screen geometry', err.message);
+					resolve(undefined);
+					return;
 				}
-				this.logService.info(`[hivemind notch] ${this.notch ? `notch ${this.notch.width}x${this.notch.height} at ${this.notch.x},${this.notch.y}` : 'no notch on any screen'}`);
-				this.detected = true;
-				this.detecting = undefined;
-				resolve();
+				const displays = screen.getAllDisplays().map((d: Display) => ({ id: d.id, internal: d.internal, bounds: d.bounds }));
+				resolve(findNotch(parseNotchProbe(String(stdout).trim()), displays));
 			});
 		});
-		return this.detecting;
 	}
 
 	// ---- The window -------------------------------------------------------------------
@@ -221,7 +229,9 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 	private open(): void {
 		const store = new DisposableStore();
 		const window = new BrowserWindow({
-			type: 'panel',
+			// macOS: a non-activating panel. Windows: never take focus from the app in front, though clicks still land.
+			type: isMacintosh ? 'panel' : undefined,
+			focusable: !isWindows,
 			show: false,
 			frame: false,
 			transparent: true,
@@ -418,7 +428,7 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 		const status = reason === 'on' ? localize('notch.awake.on', "Awake until you turn it off")
 			: reason === 'hour' ? localize('notch.awake.hour', "Awake for {0} more min", Math.max(1, Math.ceil((this.keepAwakeHourUntil - now) / 60_000)))
 				: reason === 'agents' ? (this.openTurns.size ? localize('notch.awake.agents', "Awake while agents work") : localize('notch.awake.grace', "Awake a moment after the last run"))
-					: this.keepAwakeMode === 'off' ? localize('notch.awake.off', "Off: the Mac may sleep")
+					: this.keepAwakeMode === 'off' ? (isMacintosh ? localize('notch.awake.off', "Off: the Mac may sleep") : localize('notch.awake.offPc', "Off: the computer may sleep"))
 						: this.keepAwakeSetting ? localize('notch.awake.ready', "Stays awake when an agent runs") : localize('notch.awake.none', "Off");
 		return { mode: this.keepAwakeMode, reason, status };
 	}
@@ -434,14 +444,15 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 			const now = cpus();
 			const cpu = cpuPercent(this.cpuBefore, now);
 			this.cpuBefore = now;
+			// vm_stat and pmset are macOS tools; Linux has lsof too; Windows lists no ports here.
 			const [vm, batt, lsof] = await Promise.all([
-				run('/usr/bin/vm_stat', []),
-				run('/usr/bin/pmset', ['-g', 'batt']),
-				run('/usr/sbin/lsof', ['-nP', '-iTCP', '-sTCP:LISTEN', '-Fpcn']),
+				isMacintosh ? run('/usr/bin/vm_stat', []) : undefined,
+				isMacintosh ? run('/usr/bin/pmset', ['-g', 'batt']) : undefined,
+				isWindows ? undefined : run(isMacintosh ? '/usr/sbin/lsof' : 'lsof', ['-nP', '-iTCP', '-sTCP:LISTEN', '-Fpcn']),
 			]);
 			this.system = {
 				cpu,
-				memoryUsed: vm ? parseVmStat(vm) : undefined,
+				memoryUsed: vm ? parseVmStat(vm) : isMacintosh ? undefined : totalmem() - freemem(),
 				memoryTotal: totalmem(),
 				battery: batt ? parsePmsetBattery(batt) : undefined,
 				thermal: powerMonitor.getCurrentThermalState(),
@@ -534,8 +545,8 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 			detail: cut
 				? localize('notch.promptCutShort', "Prompt cut off")
 				: offload
-					? localize('notch.onThisMacGpu', "On this Mac · {0}% GPU", Math.round(offload.gpuPercent))
-					: localize('notch.onThisMac', "On this Mac"),
+					? (isMacintosh ? localize('notch.onThisMacGpu', "On this Mac · {0}% GPU", Math.round(offload.gpuPercent)) : localize('notch.onThisPcGpu', "On this computer · {0}% GPU", Math.round(offload.gpuPercent)))
+					: (isMacintosh ? localize('notch.onThisMac', "On this Mac") : localize('notch.onThisPc', "On this computer")),
 			windows,
 		};
 	}
@@ -636,7 +647,7 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 				noRun: localize('notch.noRun', "No agent has run yet. Start one from the chat."),
 				noUsage: localize('notch.noUsage', "No usage readings yet."),
 				limitReached: localize('notch.limitReached', "{0} limit reached"),
-				mac: localize('notch.macTab', "Mac"),
+				mac: isMacintosh ? localize('notch.macTab', "Mac") : localize('notch.systemTab', "System"),
 				keepAwake: localize('notch.keepAwake', "Keep awake"),
 				modeAuto: localize('notch.mode.auto', "Agents"),
 				modeHour: localize('notch.mode.hour', "1 hour"),
@@ -656,6 +667,7 @@ export class HivemindNotchMainService extends Disposable implements IHivemindNot
 				thermal_unknown: localize('notch.thermal.unknown', "Unknown"),
 				ports: localize('notch.ports', "Listening ports"),
 				noPorts: localize('notch.noPorts', "Nothing is listening."),
+				noPortsHere: localize('notch.noPortsHere', "Listening ports are not listed on this system."),
 				stop: localize('notch.stop', "Stop"),
 				confirmStop: localize('notch.confirmStop', "Stop?"),
 				ownProcess: localize('notch.ownProcess', "HivemindIDE"),

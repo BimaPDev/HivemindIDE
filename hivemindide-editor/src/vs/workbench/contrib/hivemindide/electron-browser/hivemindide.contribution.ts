@@ -22,7 +22,7 @@ import '../browser/shell/shell.contribution.js';
 import '../../../../platform/hivemindide/electron-browser/hivemindNotchService.js';
 
 // Usage notch: plan-limit rings on the window edge and alerts as a limit nears.
-// On a Mac with a camera notch it moves into the notch itself.
+// It moves into a notch at the top of the screen: the MacBook camera notch, or one drawn where there is none.
 // Here, not in the browser entry: it listens to the shell and to failover.
 import '../browser/usageNotch/usageNotch.contribution.js';
 

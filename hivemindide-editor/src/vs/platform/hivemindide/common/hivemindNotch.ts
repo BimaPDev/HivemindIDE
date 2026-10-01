@@ -8,7 +8,9 @@
  *
  *  On a Mac whose built-in display has a camera notch, the main process keeps
  *  one small window over it, outside every editor window, so it is visible
- *  whatever app is in front. At rest it is the notch itself with two "ears":
+ *  whatever app is in front. Where no screen has one (a Mac without a notch,
+ *  the lid closed, Windows, Linux) it draws a notch of its own at the top
+ *  center of the main display and behaves the same. At rest it is the notch itself with two "ears":
  *  the Hivemind cell (the mascot) and the most urgent usage ring. Hovering
  *  drops it open to show every ring and what the agents are doing; an agent
  *  asking for permission drops it open by itself with the choices.
@@ -144,10 +146,10 @@ export function keepAwakeReason(mode: KeepAwakeMode, setting: boolean, turnsOpen
 export interface IHivemindNotchService {
 	readonly _serviceBrand: undefined;
 
-	/** The hardware notch started or stopped showing. Windows hide their in-window notch while it shows. */
+	/** The notch at the top of the screen (real or drawn) started or stopped showing. Windows hide their in-window notch while it shows. */
 	readonly onDidChangeActive: Event<boolean>;
 	isActive(): Promise<boolean>;
-	/** What `windowId` wants shown. The notch shows while any window wants it and the Mac has one. */
+	/** What `windowId` wants shown. The notch shows while any window wants it: in the camera notch if a screen has one, else drawn on the main display. */
 	update(windowId: number, state: INotchWindowState): Promise<void>;
 }
 
@@ -172,6 +174,8 @@ export interface INotchDisplayInfo {
 
 export interface INotchRect {
 	readonly displayId: number;
+	/** Drawn by HivemindIDE where the screen has no notch of its own. */
+	readonly virtual?: boolean;
 	/** In Electron screen coordinates (top-left origin), points. */
 	readonly x: number;
 	readonly y: number;
@@ -205,6 +209,28 @@ export function findNotch(screens: readonly INotchScreenInfo[], displays: readon
 		return { displayId: display.id, x: display.bounds.x + left, y: display.bounds.y, width: right - left, height: screen.safeTop };
 	}
 	return undefined;
+}
+
+/** About a MacBook notch, so the drawn one looks like the real thing. */
+const VIRTUAL_NOTCH_WIDTH = 160;
+const VIRTUAL_NOTCH_HEIGHT = 28;
+
+/**
+ * A notch drawn at the top center of `display` for screens without one. With
+ * `fitMenuBar` (macOS) it is as tall as the menu bar, as a real notch is, so
+ * it hangs no lower than the menu bar does.
+ */
+export function virtualNotch(display: INotchDisplayInfo & { readonly workArea: INotchDisplayInfo['bounds'] }, fitMenuBar: boolean): INotchRect {
+	const menuBar = display.workArea.y - display.bounds.y;
+	const height = fitMenuBar && menuBar >= 22 && menuBar <= 40 ? menuBar : VIRTUAL_NOTCH_HEIGHT;
+	return {
+		displayId: display.id,
+		virtual: true,
+		x: Math.round(display.bounds.x + (display.bounds.width - VIRTUAL_NOTCH_WIDTH) / 2),
+		y: display.bounds.y,
+		width: VIRTUAL_NOTCH_WIDTH,
+		height,
+	};
 }
 
 /**

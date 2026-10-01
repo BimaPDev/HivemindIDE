@@ -26,6 +26,7 @@ import { IViewDescriptorService } from '../../../common/views.js';
 import { HIVEMINDIDE_CONFIG_SECTION, HivemindIDESettings } from '../common/hivemindideConfiguration.js';
 import { HIVEMINDIDE_USER_VIEW_ID, UserRailState, UserRailTab } from '../common/userSidebar.js';
 import { HivemindIDESettingsSections, SELF_RENDERING_CONFIG_PREFIXES } from './hivemindideSettingsSections.js';
+import { renderAccentColorPicker } from './accentColorPicker.js';
 
 interface IRailTab {
 	readonly id: UserRailTab;
@@ -192,6 +193,13 @@ export class UserSidebarViewPane extends ViewPane {
 		});
 
 		append(parent, $('.hivemindide-user-section-label')).textContent =
+			localize('hivemindide.settings.section.appearance', "Appearance");
+		const accentRow = append(parent, $('.hivemindide-user-setting-row'));
+		append(accentRow, $('p.hivemindide-user-setting-label')).textContent = localize('hivemindide.settings.appearance.accent', "Accent color");
+		append(accentRow, $('p.hivemindide-user-setting-desc')).textContent = localize('hivemindide.settings.appearance.accentShort', "Buttons, badges, the active tab and focus rings in the Hivemind Dynamic and Light themes.");
+		store.add(renderAccentColorPicker(accentRow, this.configurationService));
+
+		append(parent, $('.hivemindide-user-section-label')).textContent =
 			localize('hivemindide.settings.section.usage', "Usage indicator");
 		this.renderBooleanSetting(parent, store, HivemindIDESettings.UsageIndicatorEnabled, localize('hivemindide.settings.usage.enabled', "Show usage indicator"), localize('hivemindide.usageIndicator.enabled', "Show a status bar indicator with AI coding assistant token usage, read from local tool data."));
 		this.renderBooleanSetting(parent, store, HivemindIDESettings.UsageIndicatorShowCost, localize('hivemindide.settings.usage.showCost', "Show estimated cost"), localize('hivemindide.usageIndicator.showCost', "Include estimated cost in the usage indicator's tooltip, when the local data reports it."));
@@ -202,7 +210,7 @@ export class UserSidebarViewPane extends ViewPane {
 			localize('hivemindide.settings.section.usageNotch', "Usage notch");
 		this.renderBooleanSetting(parent, store, HivemindIDESettings.UsageNotchEnabled, localize('hivemindide.settings.usageNotch.enabled', "Show usage notch"), localize('hivemindide.settings.usageNotch.enabledShort', "A ring per AI assistant on the window edge, filled by how much of its plan limit is used."));
 		this.renderBooleanSetting(parent, store, HivemindIDESettings.UsageNotchKeepOpen, localize('hivemindide.settings.usageNotch.keepOpen', "Keep it open"), localize('hivemindide.settings.usageNotch.keepOpenShort', "Off folds it into a pill until the pointer reaches it."));
-		this.renderBooleanSetting(parent, store, HivemindIDESettings.UsageNotchUseMacbookNotch, localize('hivemindide.settings.usageNotch.macbook', "Use the MacBook notch"), localize('hivemindide.settings.usageNotch.macbookShort', "On a MacBook with a notch, live in the notch itself, visible over any app."));
+		this.renderBooleanSetting(parent, store, HivemindIDESettings.UsageNotchUseMacbookNotch, localize('hivemindide.settings.usageNotch.topOfScreen', "Notch at the top of the screen"), localize('hivemindide.settings.usageNotch.topOfScreenShort', "Over any app; hover to open. Uses the camera notch if there is one, else draws one."));
 		this.renderBooleanSetting(parent, store, HivemindIDESettings.KeepAwakeWhileAgentsRun, localize('hivemindide.settings.keepAwake', "Keep the Mac awake while agents work"), localize('hivemindide.settings.keepAwakeShort', "No sleep mid-run; the display can still sleep."));
 
 		append(parent, $('.hivemindide-user-section-label')).textContent =

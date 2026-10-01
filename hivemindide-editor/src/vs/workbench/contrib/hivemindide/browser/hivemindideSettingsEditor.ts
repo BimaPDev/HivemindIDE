@@ -25,6 +25,7 @@ import { IEditorOpenContext } from '../../../common/editor.js';
 import { IEditorGroup } from '../../../services/editor/common/editorGroupsService.js';
 import { HIVEMINDIDE_CONFIG_SECTION, HivemindIDESettings } from '../common/hivemindideConfiguration.js';
 import { HivemindIDESettingsInput } from './hivemindideSettingsInput.js';
+import { renderAccentColorPicker } from './accentColorPicker.js';
 
 interface IBooleanSettingRow {
 	readonly kind: 'boolean';
@@ -40,7 +41,13 @@ interface IStringSettingRow {
 	readonly description: string;
 }
 
-type SettingRow = IBooleanSettingRow | IStringSettingRow;
+interface IAccentColorSettingRow {
+	readonly kind: 'accentColor';
+	readonly label: string;
+	readonly description: string;
+}
+
+type SettingRow = IBooleanSettingRow | IStringSettingRow | IAccentColorSettingRow;
 
 interface ISettingsSection {
 	readonly title: string;
@@ -48,6 +55,16 @@ interface ISettingsSection {
 }
 
 const SECTIONS: readonly ISettingsSection[] = [
+	{
+		title: localize('hivemindide.settings.section.appearance', "Appearance"),
+		rows: [
+			{
+				kind: 'accentColor',
+				label: localize('hivemindide.settings.appearance.accent', "Accent color"),
+				description: localize('hivemindide.settings.appearance.accentDesc', "The color of buttons, badges, the active tab, focus rings and the cursor in the Hivemind Dynamic and Hivemind Light themes. Custom opens a color picker."),
+			},
+		],
+	},
 	{
 		title: localize('hivemindide.settings.section.usage', "Usage indicator"),
 		rows: [
@@ -95,8 +112,8 @@ const SECTIONS: readonly ISettingsSection[] = [
 			{
 				kind: 'boolean',
 				key: HivemindIDESettings.UsageNotchUseMacbookNotch,
-				label: localize('hivemindide.settings.usageNotch.macbook', "Use the MacBook notch"),
-				description: localize('hivemindide.settings.usageNotch.macbookDesc', "On a MacBook with a camera notch, live in the notch itself, visible over any app: the Hivemind cell, the usage rings, what the agents are doing, and their permission requests. Found automatically."),
+				label: localize('hivemindide.settings.usageNotch.topOfScreen', "Notch at the top of the screen"),
+				description: localize('hivemindide.settings.usageNotch.topOfScreenDesc', "Live at the top of the screen, visible over any app: the Hivemind cell, the usage rings, what the agents are doing, and their permission requests. Hover it to open. Uses the camera notch on a MacBook that has one; elsewhere a notch is drawn at the top center of the main display."),
 			},
 			{
 				kind: 'boolean',
@@ -251,6 +268,8 @@ export class HivemindIDESettingsEditor extends EditorPane {
 		for (const row of section.rows) {
 			if (row.kind === 'boolean') {
 				this.renderBooleanRow(el, row, store);
+			} else if (row.kind === 'accentColor') {
+				this.renderAccentColorRow(el, row, store);
 			} else {
 				this.renderInputRow(el, row, store);
 			}
@@ -270,6 +289,14 @@ export class HivemindIDESettingsEditor extends EditorPane {
 		store.add(checkbox.onChange(() => {
 			this.configurationService.updateValue(row.key, checkbox.checked);
 		}));
+	}
+
+	private renderAccentColorRow(parent: HTMLElement, row: IAccentColorSettingRow, store: DisposableStore): void {
+		const rowEl = append(parent, $('.hivemindide-settings-row.hivemindide-settings-row-input'));
+		const body = append(rowEl, $('.hivemindide-settings-row-body'));
+		append(body, $('.hivemindide-settings-row-label')).textContent = row.label;
+		append(body, $('p.hivemindide-settings-row-description')).textContent = row.description;
+		store.add(renderAccentColorPicker(body, this.configurationService));
 	}
 
 	private renderInputRow(parent: HTMLElement, row: IStringSettingRow, store: DisposableStore): void {
